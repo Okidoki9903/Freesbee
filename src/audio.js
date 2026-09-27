@@ -87,4 +87,7 @@ export const sfx = {
   step() { noise(0.05, 0.02, 500, 1); },
   rec(on) { tone(on ? 880 : 440, 0.12, 'sine', 0.1); },
   select() { tone(700, 0.06, 'triangle', 0.08); },
+  perfect() { [880, 1320, 1760].forEach((f, i) => tone(f, 0.22, 'sine', 0.14, null, i * 0.05)); noise(0.3, 0.05, 6000, 0.7); },
+  tick() { tone(1200, 0.05, 'square', 0.05); },
+  buzzer() { tone(220, 0.5, 'sawtooth', 0.08, 180); },
 };

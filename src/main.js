@@ -9,6 +9,7 @@ import { initAudio, audioStream, setWind, sfx } from './audio.js';
 import { createInput } from './input.js';
 import { createRecorder, recorderSupported } from './recorder.js';
 import { t as tr, LANGS, getLang, setLang, breedText, locale, decimalComma, applyDom } from './i18n.js';
+import { track, frameSample, roundFrames, summary, exportLog, clearLog } from './metrics.js';
 
 const $ = (id) => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -200,9 +201,18 @@ function refreshTexts() {
   applyDom();
   renderBreed();
   $('diffNote').textContent = tr('diffNote.' + diffKey);
-  if (G && G.mode === 'menu') setStatus(tr('st.waiting'));
+  $('modeNote').textContent = tr('modeNote.' + G.gameMode);
 }
 langSelect.addEventListener('change', () => { setLang(langSelect.value); refreshTexts(); });
+
+// Game mode: 60-second arcade round (default) or survival with 3 lives
+function setMode(k) {
+  G.gameMode = k;
+  for (const b of document.querySelectorAll('#modeSel button')) b.setAttribute('aria-checked', String(b.dataset.mode === k));
+  $('modeNote').textContent = tr('modeNote.' + k);
+  store.set('mode', k);
+}
+for (const b of document.querySelectorAll('#modeSel button')) b.addEventListener('click', () => setMode(b.dataset.mode));
 applyDom();
 renderBreed();
 
@@ -242,7 +252,13 @@ const G = {
   headAtAnim: new THREE.Vector3(), posAtAnim: new THREE.Vector3(),
   cam: { yaw: 0, manual: 0, idle: 0, focus: new THREE.Vector3(0, 1, 0), shake: 0, fov: 0 },
   intro: { angle: 0, t: 0, jumpT: 3 },
+  // Arcade round
+  gameMode: 'arcade', timeLeft: 60, timeUp: false, perfects: 0, bestFeat: null, after: null, fade: null,
+  roundsThisSession: 0, firstCatchLogged: false, tickSec: 99,
 };
+// ?seconds=N shortens the round (handy for play-tests)
+const ROUND_SECONDS = clamp(Number(new URLSearchParams(location.search).get('seconds')) || 60, 5, 600), MISS_PENALTY = 4, PERFECT_BONUS = 2;
+const after = (sec, fn) => { G.after = { t: sec, fn }; };
 const D = () => DIFFS[diffKey];
 
 const THROWS = {
@@ -259,7 +275,11 @@ function resetGame() {
     score: 0, lives: 3, combo: 0, throws: 0, catches: 0, bestCombo: 0,
     speed: 0, heading: Math.PI, vy: 0, onGround: true, stamina: 1, tired: false, leaping: false,
     slowmo: 0, timeScale: 1, jumpBuf: 0,
+    timeLeft: ROUND_SECONDS, timeUp: false, perfects: 0, bestFeat: null, after: null, fade: null, tickSec: 99,
   });
+  document.body.classList.toggle('mode-arcade', G.gameMode === 'arcade');
+  document.body.classList.toggle('mode-survival', G.gameMode === 'survival');
+  updateTimerUi();
   G.pos.set(0, 0, 3);
   G.wind.set(0, 0, 0);
   G.cam.yaw = 0; G.cam.manual = 0;
@@ -287,7 +307,8 @@ function planThrow() {
   if (type === 'laser') { speed = rand(18, 21) * d.speed; launch = rand(9, 11); pitch = rand(8, 10); }
   if (type === 'hyzer') { bank = (Math.random() < 0.5 ? -1 : 1) * rand(10, 18); speed += 1; }
   const toDog = Math.atan2(G.pos.x, G.pos.z);
-  const yaw = toDog + rand(-1, 1) * (0.7 + level * 1.0);
+  let yaw = toDog + rand(-1, 1) * (0.7 + level * 1.0);
+  if (G.throws === 0) { type = 'floater'; speed = 11.5; launch = 18; pitch = 15; bank = 0; yaw = toDog + rand(-0.25, 0.25); }
   const windSpeed = G.throws < 2 ? 0 : rand(0, 1.2 + level * 3) * d.wind;
   const windYaw = rand(0, Math.PI * 2);
   const wind = new THREE.Vector3(Math.sin(windYaw) * windSpeed, 0, Math.cos(windYaw) * windSpeed);
@@ -334,18 +355,28 @@ function releaseDisc() {
   d.n.copy(G.plan.n);
   d.spin = 60;
   trail.clear();
-  if (G.throws <= D().ring) {
+  if (G.throws <= D().ring || G.throws === 1) {
     const land = simulate(d.pos, d.vel, d.n, G.wind);
     landRing.position.set(land.p.x, 0.05, land.p.z);
     landRing.visible = true;
   }
   const label = THROWS[G.plan.type].label;
-  if (label) popup(tr(label));
+  if (label && G.throws > 1) popup(tr(label));
   sfx.whoosh();
-  setStatus(tr('st.catch'));
+  setStatus(G.throws === 1 && !store.get('tutDone', false) ? tr('tut.run') : tr('st.catch'));
 }
 
 function addScore(n) { G.score += n; ui.score.textContent = fmt(G.score); }
+function restartAnim(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function flyScore(text) { const el = $('scoreFly'); el.textContent = text; restartAnim(el, 'go'); }
+function flyTime(text, good) { const el = $('timeFly'); el.textContent = text; el.classList.toggle('bad', !good); restartAnim(el, 'go'); }
+let lastTimerText = '';
+function updateTimerUi() {
+  const s = Math.max(0, Math.ceil(G.timeLeft));
+  const txt = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  if (txt !== lastTimerText) { lastTimerText = txt; $('timerText').textContent = txt; }
+  $('timer').classList.toggle('hurry', G.timeLeft <= 10);
+}
 
 function catchDisc(cosA) {
   const d = G.disc;
@@ -354,6 +385,10 @@ function catchDisc(cosA) {
   const overShoulder = cosA < 0.35;
   G.combo++; G.catches++;
   G.bestCombo = Math.max(G.bestCombo, G.combo);
+  // Perfect: caught at the top of a jump the player timed
+  const airborne = !G.onGround && height > 0.1;
+  const perfect = airborne && Math.abs(G.vy) < 2.2;
+  const timing = airborne && !perfect ? (G.vy > 0 ? tr('c.late') : tr('c.early')) : null;
   let label = tr('c.caught'), mult = 1;
   if (G.leaping && height > 0.2) { label = tr('c.dive'); mult = 2.5; }
   else if (height > 0.8) { label = tr('c.acro'); mult = 3; }
@@ -362,10 +397,20 @@ function catchDisc(cosA) {
   if (height > 1.1) { label = tr('c.acro'); mult = Math.max(mult, 3); }
   const extras = [];
   if (overShoulder) { mult *= 1.5; extras.push(tr('c.shoulder')); }
+  if (perfect) { mult *= 1.5; label = tr('c.perfect'); G.perfects++; }
   const comboMult = 1 + 0.5 * (G.combo - 1);
   const pts = Math.round((100 + dist * 4) * mult * comboMult * D().points / 10) * 10;
   addScore(pts);
-  popup(label, [`+${fmt(pts)}`, `${dist.toFixed(0)} m`, ...extras].join('  ·  '));
+  // Show the feat first, the points second
+  const feat = [airborne || d.pos.y < 0.45 ? tr('feat.height', fmtNum(d.pos.y)) : null, tr('feat.dist', dist.toFixed(0)), ...extras, timing].filter(Boolean).join('  ·  ');
+  popup(label, feat);
+  flyScore(`+${fmt(pts)}`);
+  if (!G.bestFeat || pts > G.bestFeat.pts) G.bestFeat = { label, feat, pts };
+  track('catch', { kind: label, perfect, pts, dist: Math.round(dist), h: Math.round(d.pos.y * 100) / 100, throw: G.throws });
+  if (!G.firstCatchLogged) { G.firstCatchLogged = true; track('first_catch', {}); }
+  if (G.gameMode === 'arcade' && perfect && !G.timeUp) { G.timeLeft += PERFECT_BONUS; flyTime(`+${PERFECT_BONUS} s`, true); }
+  if (perfect) { sfx.perfect(); G.cam.shake = 0.35; }
+  if (!store.get('tutDone', false) && G.catches === 1) { setTimeout(() => toast(tr('tut.perfect'), 5000), 900); store.set('tutDone', true); }
   if (mult >= 2) { sfx.big(); G.cam.shake = 0.3; controls.rumble(0.8, 0.5, 220); G.slowmo = 0.6; }
   else { sfx.catch(); controls.rumble(0.4, 0.3, 120); }
   sfx.snap();
@@ -379,7 +424,10 @@ function catchDisc(cosA) {
   landRing.visible = false;
   owner.play([[0, '_from'], [0.25, 'cheer'], [0.8, 'cheer'], [1.2, 'wave']]);
   owner.setBase('wave');
-  setStatus(tr('st.bring'));
+  if (G.gameMode === 'arcade') {
+    setStatus(tr('st.nice'));
+    after(perfect ? 1.1 : 0.85, () => (G.timeUp ? endRound() : expressReturn()));
+  } else setStatus(tr('st.bring'));
 }
 
 function bounceOff(center, label) {
@@ -407,17 +455,24 @@ function discLanded() {
   G.combo = 0;
   ui.combo.hidden = true;
   landRing.visible = false;
-  G.lives--;
-  ui.lives.forEach((l, i) => l.classList.toggle('lost', i >= G.lives));
   sfx.miss(); sfx.thud();
   fx.grass(G.disc.pos.x, G.disc.pos.z, 18, 2.5);
   fx.dust(G.disc.pos.x, G.disc.pos.z, 6, 0.2, 1.2);
   controls.rumble(0.2, 0.6, 180);
   owner.setBase('idle');
+  track('miss', { throw: G.throws });
+  if (G.gameMode === 'arcade') {
+    if (!G.timeUp) { G.timeLeft = Math.max(0, G.timeLeft - MISS_PENALTY); flyTime(`−${MISS_PENALTY} s`, false); }
+    popup(tr('c.miss'), tr('c.penalty', MISS_PENALTY));
+    after(1.0, () => (G.timeUp || G.timeLeft <= 0 ? endRound() : expressReturn()));
+    return;
+  }
+  G.lives--;
+  ui.lives.forEach((l, i) => l.classList.toggle('lost', i >= G.lives));
   if (G.lives <= 0) {
     popup(tr('c.miss'));
     setStatus(tr('st.none'));
-    setTimeout(gameOver, 1500);
+    after(1.5, endRound);
   } else {
     popup(tr('c.miss'), G.lives === 1 ? tr('c.last') : tr('c.left', G.lives));
     setStatus(tr('st.fetch'));
@@ -431,23 +486,57 @@ function xIntent(text) {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(PLAY_URL)}`;
 }
 
-function gameOver() {
+// Quick fade that puts the dog back by its owner for the next throw
+function expressReturn() {
+  G.fade = { t: 0, done: false };
+}
+function fadeMid() {
+  const a = rand(0, Math.PI * 2);
+  G.pos.set(Math.sin(a) * 2.4, 0, Math.cos(a) * 2.4);
+  G.speed = 0; G.vy = 0; G.onGround = true; G.leaping = false;
+  G.heading = Math.atan2(-G.pos.x, -G.pos.z);
+  G.cam.yaw = Math.atan2(G.pos.x, G.pos.z); G.cam.manual = 0;
+  camera.position.set(G.pos.x + Math.sin(G.cam.yaw) * 8.5, 4.2, G.pos.z + Math.cos(G.cam.yaw) * 8.5);
+  G.cam.focus.set(0, 1, 0);
+  trail.clear();
+  owner.play([[0, '_from'], [0.2, 'receive'], [0.45, 'idle']]);
+  startWindup(0.35);
+}
+
+function endRound() {
+  if (G.mode !== 'play') return;
   G.mode = 'over';
-  const best = store.get('best', 0);
-  const isRecord = G.score > best;
-  if (isRecord) store.set('best', G.score);
+  G.after = null;
+  const key = 'best-' + G.gameMode;
+  const best = store.get(key, G.gameMode === 'survival' ? store.get('best', 0) : 0);
+  const isRecord = G.score > best && G.score > 0;
+  if (isRecord) store.set(key, G.score);
+  const frames = roundFrames();
+  track('round_end', { mode: G.gameMode, breed: breed.id, score: G.score, catches: G.catches, perfects: G.perfects, record: isRecord, p95: frames.p95, longFrames: frames.long });
+  $('overTitle').textContent = G.gameMode === 'arcade' ? tr('over.time') : tr('over.title');
   $('finalScore').textContent = fmt(G.score);
+  const rec = $('recordLine');
+  rec.classList.toggle('new', isRecord);
+  rec.textContent = isRecord ? tr('over.newRecord') : best > 0 ? tr('over.toBeat', fmt(best - G.score + 10), fmt(best)) : '';
+  const bf = $('bestFeat');
+  bf.hidden = !G.bestFeat;
+  if (G.bestFeat) {
+    $('bestFeatLabel').textContent = G.bestFeat.label;
+    $('bestFeatDetail').textContent = `${G.bestFeat.feat}  ·  +${fmt(G.bestFeat.pts)}`;
+  }
   const combo = Math.max(1, 1 + 0.5 * (G.bestCombo - 1));
-  $('finalDetail').textContent =
-    `${breedText(breed.id)[0]} · ${tr('over.catches', G.catches)} · ${tr('over.bestCombo')} ×${fmtMult(combo)} · ` +
-    (isRecord ? tr('over.newRecord') : `${tr('over.record')} : ${fmt(best)}`);
+  $('finalDetail').textContent = `${breedText(breed.id)[0]} · ${tr('over.catches', G.catches)} · ${tr('over.perfects', G.perfects)} · ${tr('over.bestCombo')} ×${fmtMult(combo)}`;
   $('shareX').href = xIntent(shareText());
   $('overScreen').hidden = false;
   $('againBtn').focus();
 }
 
-function start() {
+function start(reason = 'play') {
   initAudio(() => G.paused || G.mode !== 'play');
+  if (reason === 'rematch') track('rematch', { mode: G.gameMode, prevScore: G.score });
+  G.roundsThisSession++;
+  roundFrames();
+  track('round_start', { mode: G.gameMode, breed: breed.id, diff: diffKey, n: G.roundsThisSession });
   for (const id of ['startScreen', 'overScreen', 'pauseScreen']) $(id).hidden = true;
   document.body.classList.remove('in-menu');
   G.paused = false;
@@ -457,6 +546,7 @@ function start() {
   sfx.bark(Math.sqrt(1 / dog.scale));
 }
 function toMenu() {
+  track('menu_open', { from: G.mode });
   for (const id of ['overScreen', 'pauseScreen']) $(id).hidden = true;
   $('startScreen').hidden = false;
   document.body.classList.add('in-menu');
@@ -472,8 +562,8 @@ function setPaused(on) {
   if (on) $('resumeBtn').focus();
   else initAudio();
 }
-$('playBtn').addEventListener('click', start);
-$('againBtn').addEventListener('click', start);
+$('playBtn').addEventListener('click', () => start('menu'));
+$('againBtn').addEventListener('click', () => start('rematch'));
 $('resumeBtn').addEventListener('click', () => setPaused(false));
 $('pauseBtn').addEventListener('click', (e) => { e.currentTarget.blur(); setPaused(!G.paused); });
 $('menuBtn').addEventListener('click', toMenu);
@@ -517,6 +607,12 @@ function drawOverlay(ctx, w, h) {
     ctx.fillText(breedText(breed.id)[0].toUpperCase(), 34 * u, 42 * u);
     ctx.font = `${Math.round(40 * u)}px ${disp}`;
     ctx.fillText(scoreText, 34 * u, 84 * u);
+    if (G.gameMode === 'arcade' && G.mode === 'play') {
+      ctx.textAlign = 'right';
+      ctx.font = `${Math.round(44 * u)}px ${disp}`;
+      outlinedText(ctx, lastTimerText, w - 24 * u, 66 * u, G.timeLeft <= 10 ? orange : paper, ink, 7 * u);
+      ctx.textAlign = 'left';
+    }
     if (G.combo > 1) {
       ctx.textAlign = 'center';
       ctx.font = `${Math.round(34 * u)}px ${disp}`;
@@ -542,6 +638,11 @@ function drawOverlay(ctx, w, h) {
       ctx.globalAlpha = 1;
       ctx.textAlign = 'left';
     } else popupState = null;
+  }
+  if (G.fade) {
+    const f = G.fade.t;
+    ctx.fillStyle = `rgba(31,58,34,${clamp(f < 0.2 ? f / 0.2 : 1 - (f - 0.25) / 0.2, 0, 1)})`;
+    ctx.fillRect(0, 0, w, h);
   }
   // Watermark with the link to play
   ctx.font = `${Math.round(30 * u)}px ${disp}`;
@@ -761,6 +862,7 @@ function stepIntroDog(h) {
 
 function stepDisc(h) {
   const d = G.disc;
+  if (G.mode === 'over' && (G.phase === 'windup' || G.phase === 'handoff')) return;
   G.hitCooldown -= h;
   fwdOf(G.heading, tmpA);
   dogVel.copy(tmpA).multiplyScalar(G.speed); dogVel.y = G.vy;
@@ -824,7 +926,7 @@ function stepDisc(h) {
     G.timer += h;
     // Pick up: the muzzle has to reach the disc on the ground
     const mzx = G.pos.x + tmpA.x * dog.headForward, mzz = G.pos.z + tmpA.z * dog.headForward;
-    if (G.lives > 0 && G.timer > 0.4 && G.onGround && G.speed < P.run * 1.05 &&
+    if (G.gameMode === 'survival' && G.lives > 0 && G.timer > 0.4 && G.onGround && G.speed < P.run * 1.05 &&
         Math.hypot(d.pos.x - mzx, d.pos.z - mzz) < 0.35 + P.reach * 0.4) {
       G.phase = 'carrying';
       G.catchFrom.copy(d.pos); G.carryT = 0;
@@ -836,7 +938,7 @@ function stepDisc(h) {
     return;
   }
   if (G.phase === 'carrying') {
-    if (Math.hypot(G.pos.x, G.pos.z) < 1.7) {
+    if (G.gameMode === 'survival' && Math.hypot(G.pos.x, G.pos.z) < 1.7) {
       G.phase = 'handoff';
       G.timer = 0;
       if (G.combo > 0) { addScore(50); popup(tr('c.goodDog'), '+50'); }
@@ -1031,9 +1133,9 @@ function handleMenus() {
     const keys = Object.keys(DIFFS), i = keys.indexOf(diffKey);
     if (input.up) setDiff(keys[Math.max(0, i - 1)]);
     if (input.down) setDiff(keys[Math.min(keys.length - 1, i + 1)]);
-    if (input.confirm) start();
+    if (input.confirm) start('menu');
   } else if (G.mode === 'over') {
-    if (input.confirm) start();
+    if (input.confirm) start('rematch');
   } else if (G.mode === 'play') {
     if (input.pause) setPaused(!G.paused);
     else if (input.confirm && G.paused) setPaused(false);
@@ -1046,8 +1148,48 @@ function handleMenus() {
    ====================================================================== */
 const clock = new THREE.Clock();
 let acc = 0;
-camera.position.set(0, 2, 9);
+camera.position.set(0, 4.2, 11.5);
 owner.setBase('wave');
+
+// Sound can only start after a gesture
+const unlockAudio = () => initAudio(() => G.paused || G.mode !== 'play');
+window.addEventListener('pointerdown', unlockAudio);
+window.addEventListener('keydown', unlockAudio);
+
+// Show the controls for this device during the first round
+function showHint() {
+  const el = $('hint');
+  const kind = document.body.classList.contains('pad-active') ? 'pad' : IS_TOUCH ? 'touch' : 'keys';
+  el.innerHTML = tr('hint.' + kind);
+  el.hidden = false;
+  setTimeout(() => { el.hidden = true; }, 7000);
+}
+
+// Play-test panel: open the game with #debug
+if (location.hash === '#debug') {
+  const panel = $('debug');
+  panel.hidden = false;
+  const refresh = () => {
+    const s = summary();
+    panel.querySelector('pre').textContent =
+      `sessions ${s.sessions} · rounds ${s.rounds} · rematches ${s.rematches}\n` +
+      `sessions with 3+ rounds ${s.sessionsWith3Rounds}\n` +
+      `median first catch ${s.medianFirstCatchSec ?? '–'} s (since page load)\n` +
+      `catches ${s.catches} · perfects ${s.perfects} · misses ${s.misses}\n` +
+      `last round p95 frame ${s.lastP95ms ?? '–'} ms`;
+  };
+  refresh();
+  setInterval(refresh, 2000);
+  panel.querySelector('[data-act=copy]').addEventListener('click', () => {
+    navigator.clipboard.writeText(exportLog()).then(() => toast('Log copied'), () => toast('Copy failed'));
+  });
+  panel.querySelector('[data-act=clear]').addEventListener('click', () => { clearLog(); refresh(); });
+}
+
+track('session_start', { lang: getLang(), touch: IS_TOUCH, w: innerWidth, h: innerHeight });
+setMode(store.get('mode', 'arcade') === 'survival' ? 'survival' : 'arcade');
+start('boot');
+showHint();
 
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.1);
@@ -1061,6 +1203,27 @@ function frame() {
     if (G.slowmo > 0) G.slowmo -= dt;
     G.timeScale = damp(G.timeScale, G.slowmo > 0 ? 0.3 : 1, 10, dt);
     const gdt = dt * G.timeScale;
+    if (G.mode === 'play') {
+      frameSample(dt * 1000);
+      if (G.after) { G.after.t -= gdt; if (G.after.t <= 0) { const f = G.after.fn; G.after = null; f(); } }
+      if (G.gameMode === 'arcade' && !G.timeUp && G.phase !== 'intro') {
+        if (!G.fade) G.timeLeft -= gdt;
+        if (G.timeLeft <= 0) {
+          G.timeLeft = 0; G.timeUp = true;
+          sfx.buzzer();
+          if (G.phase !== 'flying' && G.phase !== 'carrying' && !G.after) after(0.6, endRound);
+          else if (G.phase === 'flying') popup(tr('c.lastThrow'));
+        } else if (G.timeLeft <= 10 && Math.ceil(G.timeLeft) < G.tickSec) { G.tickSec = Math.ceil(G.timeLeft); sfx.tick(); }
+      }
+      updateTimerUi();
+    }
+    if (G.fade) {
+      G.fade.t += dt;
+      if (G.fade.t >= 0.2 && !G.fade.done) { G.fade.done = true; fadeMid(); }
+      const f = G.fade.t;
+      $('fade').style.opacity = String(f < 0.2 ? f / 0.2 : Math.max(0, 1 - (f - 0.25) / 0.2));
+      if (f > 0.46) { G.fade = null; $('fade').style.opacity = '0'; }
+    }
     acc += gdt;
     let steps = 0;
     while (acc >= STEP && steps < 24) {
@@ -1078,7 +1241,7 @@ function frame() {
   const st = G.stamina.toFixed(3);
   if (ui.staminaFill.dataset.v !== st) { ui.staminaFill.dataset.v = st; ui.staminaFill.style.transform = `scaleX(${st})`; }
   ui.stamina.classList.toggle('tired', G.tired);
-  if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4) setStatus(tr('st.fetch'));
+  if (G.phase === 'ground' && G.gameMode === 'survival' && G.lives > 0 && G.timer > 0.4) setStatus(tr('st.fetch'));
 
   renderer.render(scene, camera);
   recorder.frame();

@@ -8,6 +8,20 @@ Pour réfléchir à la suite du jeu avec d'autres outils : [docs/BRAINSTORM_PROM
 
 **Jouer en ligne : https://okidoki9903.github.io/Freesbee/** (après activation de GitHub Pages, voir plus bas)
 
+## Comment ça se joue
+
+Le jeu démarre directement dans une **manche arcade de 60 secondes** : attrape un maximum de frisbees.
+- Le premier lancer de chaque manche est facile et arrive vers toi.
+- **Prise parfaite** : saute pour être au sommet de ton saut quand le frisbee arrive. Le jeu te dit si tu as sauté « un peu tôt » ou « un peu tard ». Une prise parfaite multiplie les points par 1,5 et rend 2 secondes.
+- Un raté coûte 4 secondes et le combo, mais la manche continue.
+- **Retour express** : après chaque lancer, un court fondu ramène le chien au maître et le lancer suivant arrive aussitôt.
+- Si le chrono tombe à zéro pendant qu'un frisbee est en l'air, ce dernier lancer compte.
+- En fin de manche : ta meilleure prise, l'écart avec ton record et un gros bouton **Revanche** (Entrée, A ou toucher).
+
+Le mode **Survie** (3 frisbees au sol, retour du frisbee à la main) reste disponible dans « Chiens et modes ».
+
+Tests de jeu : ouvre le jeu avec `#debug` pour voir les mesures locales. Le protocole est dans [docs/PLAYTEST.md](docs/PLAYTEST.md).
+
 ## Les chiens
 
 Chaque race a ses qualités, notées de 1 à 10, et sa propre silhouette (taille, pattes, oreilles, queue, robe).
@@ -88,4 +102,5 @@ python3 -m http.server 8000
 - `src/recorder.js` : capture du canvas et du son avec MediaRecorder, avec le score et le lien dessinés dans la vidéo.
 - `src/world.js` : le parc, avec collines, herbe instanciée, massifs de fleurs, bosquets (feuillus, pins, bouleaux), étang (eau animée, roseaux, nénuphars, canards), allée avec bancs et lampadaires, papillons, oiseaux, pollen, promeneurs avec leur chien.
 - `src/i18n.js` : traductions (EN, FR, ES, PT).
+- `src/metrics.js` : journal local et anonyme des parties (panneau `#debug`).
 - `src/fx.js`, `src/audio.js`, `src/input.js` : particules et traînée, sons, clavier/tactile/manette.
