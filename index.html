@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Freesbee</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #1f3a22;
+    --paper: #fbf7ea;
+    --disc: #ff5a1f;
+    --disc-deep: #c93d0c;
+    --grass: #6fa843;
+    --sky: #bfe3f2;
+    --shade: rgba(20, 40, 22, 0.55);
+    --display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+    --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  }
+  html, body { height: 100%; margin: 0; overflow: hidden; background: var(--sky); }
+  body {
+    font-family: var(--body); color: var(--ink);
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    touch-action: none;
+  }
+  [hidden] { display: none !important; }
+  #game { position: fixed; inset: 0; }
+  #game canvas { display: block; width: 100%; height: 100%; }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    position: fixed; left: 0; right: 0; top: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 0;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    pointer-events: none;
+  }
+  .chip {
+    background: var(--paper); border: 3px solid var(--ink); border-radius: 14px;
+    padding: 6px 12px; box-shadow: 0 4px 0 var(--ink);
+  }
+  .chip small {
+    display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.12em;
+    text-transform: uppercase; opacity: 0.7;
+  }
+  .score { font-family: var(--display); font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .lives { display: flex; gap: 6px; padding-block: 10px; }
+  .life {
+    width: 26px; height: 12px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, #ffd2bd 0 18%, var(--disc) 20% 100%);
+    border: 2px solid var(--disc-deep); transition: opacity .3s, transform .3s;
+  }
+  .life.lost { opacity: 0.2; transform: scale(0.8); filter: grayscale(1); }
+
+  .status {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    top: calc(env(safe-area-inset-top, 0px) + 78px);
+    font-weight: 800; font-size: 15px; color: var(--paper);
+    background: var(--shade); padding: 6px 14px; border-radius: 999px;
+    white-space: nowrap; pointer-events: none; max-width: calc(100% - 32px);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .combo {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    font-family: var(--display); font-size: 26px; color: var(--disc);
+    -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
+    pointer-events: none;
+  }
+  .popup {
+    position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%);
+    font-family: var(--display); font-size: clamp(30px, 8vw, 56px); color: var(--paper);
+    -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; text-align: center;
+    pointer-events: none; opacity: 0; line-height: 1.05;
+  }
+  .popup span { display: block; font-size: 0.55em; color: var(--disc); }
+  .popup.show { animation: pop 1.3s ease-out forwards; }
+  @keyframes pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    25% { transform: translate(-50%, -50%) scale(1); }
+    75% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -80%) scale(1); }
+  }
+
+  .stamina {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+    width: min(220px, 44vw); height: 12px; border: 3px solid var(--ink);
+    border-radius: 999px; background: var(--paper); overflow: hidden; pointer-events: none;
+  }
+  .stamina i { display: block; height: 100%; width: 100%; background: #3fa0d8; transform-origin: left; }
+  .stamina.tired i { background: #d85a3f; }
+
+  /* ---------- Touch controls ---------- */
+  .touch { display: none; }
+  body.is-touch .touch { display: block; }
+  .stick-base {
+    position: fixed; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%;
+    border: 3px solid rgba(251, 247, 234, 0.8); background: rgba(31, 58, 34, 0.25);
+    pointer-events: none; opacity: 0; transition: opacity .15s;
+  }
+  .stick-base.on { opacity: 1; }
+  .stick-knob {
+    position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px;
+    border-radius: 50%; background: var(--paper); border: 3px solid var(--ink);
+  }
+  .btn-round {
+    position: fixed; border-radius: 50%; border: 3px solid var(--ink);
+    font-family: var(--display); color: var(--ink); box-shadow: 0 5px 0 var(--ink);
+    display: grid; place-items: center; font-size: 16px;
+  }
+  .btn-round.down { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  #btnJump { right: 20px; bottom: calc(env(safe-area-inset-bottom, 0px) + 40px); width: 88px; height: 88px; background: var(--disc); color: var(--paper); -webkit-text-stroke: 1px var(--ink); font-size: 18px; }
+  #btnSprint { right: 122px; bottom: calc(env(safe-area-inset-bottom, 0px) + 30px); width: 70px; height: 70px; background: var(--paper); }
+  .hint-touch { display: none; }
+  body.is-touch .hint-keys { display: none; }
+  body.is-touch .hint-touch { display: block; }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: fixed; inset: 0; display: grid; place-items: center;
+    padding-inline: 16px; background: rgba(31, 58, 34, 0.35);
+  }
+  .card {
+    background: var(--paper); border: 4px solid var(--ink); border-radius: 22px;
+    box-shadow: 0 8px 0 var(--ink); padding: 24px 24px 26px;
+    width: min(440px, 100%); box-sizing: border-box; text-align: center;
+    display: grid; gap: 14px;
+  }
+  .card h1 {
+    margin: 0; font-family: var(--display); font-weight: 400;
+    font-size: clamp(48px, 14vw, 72px); line-height: 0.9; color: var(--disc);
+    -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; letter-spacing: 0.01em;
+  }
+  .card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 36px; text-wrap: balance; }
+  .card p { margin: 0; line-height: 1.45; font-size: 15px; text-wrap: pretty; }
+  .rules { text-align: left; display: grid; gap: 6px; font-size: 14px; margin: 0; padding-left: 20px; }
+  kbd {
+    font-family: var(--body); font-weight: 800; font-size: 12px; border: 2px solid var(--ink);
+    border-bottom-width: 3px; border-radius: 6px; padding: 0 5px; background: #fff;
+  }
+  .final { font-family: var(--display); font-size: 56px; line-height: 1; color: var(--disc); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
+  .play {
+    font-family: var(--display); font-size: 24px; color: var(--paper); background: var(--disc);
+    border: 3px solid var(--ink); border-radius: 16px; padding: 12px 20px; cursor: pointer;
+    box-shadow: 0 5px 0 var(--ink); -webkit-text-stroke: 1px var(--ink);
+  }
+  .play:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .play:focus-visible { outline: 3px solid #3fa0d8; outline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .popup.show { animation-duration: 0.01s; animation-fill-mode: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div class="hud">
+  <div class="chip"><small>Score</small><div class="score" id="score">0</div></div>
+  <div class="chip lives" id="lives" aria-label="Vies restantes">
+    <div class="life"></div><div class="life"></div><div class="life"></div>
+  </div>
+</div>
+<div class="combo" id="combo" hidden></div>
+<div class="status" id="status">Le maître prépare son lancer…</div>
+<div class="popup" id="popup"></div>
+<div class="stamina" id="stamina"><i id="staminaFill"></i></div>
+
+<div class="touch">
+  <div class="stick-base" id="stickBase"><div class="stick-knob" id="stickKnob"></div></div>
+  <div class="btn-round" id="btnSprint">Sprint</div>
+  <div class="btn-round" id="btnJump">Saut</div>
+</div>
+
+<div class="screen" id="startScreen">
+  <div class="card">
+    <h1>Freesbee</h1>
+    <p>Ton maître lance le frisbee. À toi, le chien, de l'attraper avant qu'il ne touche l'herbe.</p>
+    <ul class="rules">
+      <li class="hint-keys">Courir : <kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>W</kbd><kbd>A</kbd> ou les flèches</li>
+      <li class="hint-keys">Sauter : <kbd>Espace</kbd> · Sprinter : <kbd>Maj</kbd></li>
+      <li class="hint-touch">Glisse le pouce à gauche pour courir, boutons à droite pour sauter et sprinter.</li>
+      <li>Regarde où le maître se tourne : c'est là que part le frisbee.</li>
+      <li>Une prise en plein saut rapporte double. Enchaîne pour le combo.</li>
+      <li>Rapporte le frisbee au maître pour le lancer suivant. 3 frisbees au sol et c'est fini.</li>
+    </ul>
+    <button class="play" id="playBtn" type="button">Jouer</button>
+  </div>
+</div>
+
+<div class="screen" id="overScreen" hidden>
+  <div class="card">
+    <h2>Fin de la partie</h2>
+    <div class="final" id="finalScore">0</div>
+    <p id="finalDetail"></p>
+    <button class="play" id="againBtn" type="button">Rejouer</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const $ = (id) => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const damp = (a, b, rate, dt) => a + (b - a) * (1 - Math.exp(-rate * dt));
+const angleDamp = (a, b, rate, dt) => {
+  let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  return a + d * (1 - Math.exp(-rate * dt));
+};
+
+const FIELD_R = 48;
+const GRAVITY_DOG = 22;
+const RUN_SPEED = 10;
+const SPRINT_SPEED = 15;
+
+/* ================= Renderer & scene ================= */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+$('game').appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xbfe3f2);
+scene.fog = new THREE.Fog(0xbfe3f2, 70, 160);
+
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400);
+
+scene.add(new THREE.HemisphereLight(0xeaf6ff, 0x4f6f33, 1.0));
+const sun = new THREE.DirectionalLight(0xfff0d0, 1.8);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 120 });
+sun.shadow.bias = -0.0006;
+scene.add(sun, sun.target);
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.fov = w < h ? 72 : 60;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ================= World ================= */
+function lawnTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  // Mowing stripes, the way a park lawn looks from above.
+  for (let i = 0; i < 4; i++) {
+    g.fillStyle = i % 2 ? '#6aa33f' : '#78b24a';
+    g.fillRect(i * 64, 0, 64, 256);
+  }
+  for (let i = 0; i < 2600; i++) {
+    g.fillStyle = Math.random() < 0.5 ? 'rgba(40,80,20,0.18)' : 'rgba(170,210,110,0.18)';
+    g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 2, 2 + Math.random() * 3);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(40, 40);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(400, 400),
+  new THREE.MeshStandardMaterial({ map: lawnTexture(), roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Chalk boundary circle
+const chalk = new THREE.Mesh(
+  new THREE.RingGeometry(FIELD_R + 0.8, FIELD_R + 1.1, 128),
+  new THREE.MeshBasicMaterial({ color: 0xf4f4e8, transparent: true, opacity: 0.7 })
+);
+chalk.rotation.x = -Math.PI / 2;
+chalk.position.y = 0.02;
+scene.add(chalk);
+
+const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2b, roughness: 1 });
+const leafMats = [0x3f7d34, 0x4d8f3a, 0x2f6b2e].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true }));
+function addTree(x, z, s) {
+  const tree = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25 * s, 0.4 * s, 3 * s, 7), trunkMat);
+  trunk.position.y = 1.5 * s;
+  tree.add(trunk);
+  const leafMat = leafMats[Math.floor(Math.random() * leafMats.length)];
+  for (let i = 0; i < 3; i++) {
+    const r = (1.6 - i * 0.3) * s;
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), leafMat);
+    leaf.position.set(rand(-0.6, 0.6) * s, (3 + i * 1.1) * s, rand(-0.6, 0.6) * s);
+    leaf.rotation.set(rand(0, 3), rand(0, 3), 0);
+    tree.add(leaf);
+  }
+  tree.traverse((o) => { if (o.isMesh) { o.castShadow = true; } });
+  tree.position.set(x, 0, z);
+  scene.add(tree);
+}
+for (let i = 0; i < 70; i++) {
+  const a = rand(0, Math.PI * 2);
+  const r = rand(FIELD_R + 6, 120);
+  addTree(Math.cos(a) * r, Math.sin(a) * r, rand(0.9, 1.6));
+}
+const bushMat = new THREE.MeshStandardMaterial({ color: 0x5c9a3d, roughness: 1, flatShading: true });
+for (let i = 0; i < 40; i++) {
+  const a = rand(0, Math.PI * 2);
+  const r = rand(FIELD_R + 3, FIELD_R + 12);
+  const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.6, 1.2), 0), bushMat);
+  b.position.set(Math.cos(a) * r, 0.4, Math.sin(a) * r);
+  b.castShadow = true;
+  scene.add(b);
+}
+// A little picnic blanket next to the owner
+const blanket = new THREE.Mesh(
+  new THREE.PlaneGeometry(2.2, 1.6),
+  new THREE.MeshStandardMaterial({
+    map: (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.fillStyle = '#f2ead6'; g.fillRect(0, 0, 64, 64);
+      g.fillStyle = 'rgba(210,60,40,0.75)';
+      for (let i = 0; i < 64; i += 16) { g.fillRect(i, 0, 8, 64); g.fillRect(0, i, 64, 8); }
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t;
+    })(),
+    roughness: 1,
+  })
+);
+blanket.rotation.x = -Math.PI / 2;
+blanket.rotation.z = 0.4;
+blanket.position.set(-2.4, 0.015, -1.2);
+blanket.receiveShadow = true;
+scene.add(blanket);
+
+/* ================= Dog ================= */
+function makeDog() {
+  const dog = new THREE.Group();
+  const fur = new THREE.MeshStandardMaterial({ color: 0xc98a4b, roughness: 0.9 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x6b4226, roughness: 0.9 });
+  const cream = new THREE.MeshStandardMaterial({ color: 0xf3e6d3, roughness: 0.9 });
+  const black = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 });
+  const red = new THREE.MeshStandardMaterial({ color: 0xd8322a, roughness: 0.6 });
+
+  const rig = new THREE.Group(); // bobbing / tilting part
+  dog.add(rig);
+
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.27, 0.7, 6, 12), fur);
+  body.rotation.x = Math.PI / 2;
+  body.position.y = 0.68;
+  rig.add(body);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), cream);
+  belly.scale.set(0.9, 0.9, 1.3);
+  belly.position.set(0, 0.62, 0.3);
+  rig.add(belly);
+
+  const head = new THREE.Group();
+  head.position.set(0, 1.0, 0.58);
+  rig.add(head);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 12), fur);
+  skull.scale.set(1, 0.95, 1.05);
+  head.add(skull);
+  const snout = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.16, 0.28), cream);
+  snout.position.set(0, -0.06, 0.24);
+  head.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), black);
+  nose.position.set(0, -0.01, 0.39);
+  head.add(nose);
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), black);
+    eye.position.set(0.1 * s, 0.06, 0.2);
+    head.add(eye);
+  }
+  const ears = [];
+  for (const s of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(0.17 * s, 0.14, -0.02);
+    const ear = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.16), dark);
+    ear.position.y = -0.11;
+    pivot.add(ear);
+    pivot.rotation.z = 0.35 * s;
+    head.add(pivot);
+    ears.push({ pivot, s });
+  }
+  const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.12), new THREE.MeshStandardMaterial({ color: 0xe86a7a }));
+  tongue.position.set(0, -0.15, 0.3);
+  tongue.rotation.x = 0.5;
+  head.add(tongue);
+  const mouth = new THREE.Object3D();
+  mouth.position.set(0, -0.1, 0.42);
+  head.add(mouth);
+
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 6, 16), red);
+  collar.position.set(0, 0.86, 0.46);
+  collar.rotation.x = Math.PI / 2 - 0.5;
+  rig.add(collar);
+
+  const legs = [];
+  const legGeo = new THREE.CylinderGeometry(0.07, 0.06, 0.48, 8);
+  const pawGeo = new THREE.SphereGeometry(0.085, 8, 6);
+  for (const [x, z, front] of [[-0.15, 0.36, 1], [0.15, 0.36, 1], [-0.15, -0.36, 0], [0.15, -0.36, 0]]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 0.55, z);
+    const leg = new THREE.Mesh(legGeo, fur);
+    leg.position.y = -0.24;
+    pivot.add(leg);
+    const paw = new THREE.Mesh(pawGeo, cream);
+    paw.position.set(0, -0.5, 0.03);
+    paw.scale.set(1, 0.6, 1.3);
+    pivot.add(paw);
+    rig.add(pivot);
+    legs.push({ pivot, x, front });
+  }
+
+  const tail = new THREE.Group();
+  tail.position.set(0, 0.8, -0.55);
+  const tailMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, 0.5, 6), fur);
+  tailMesh.position.y = 0.25;
+  tail.add(tailMesh);
+  tail.rotation.x = -0.7;
+  rig.add(tail);
+
+  dog.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  dog.userData = { rig, head, ears, legs, tail, tongue, mouth };
+  return dog;
+}
+
+/* ================= Owner ================= */
+function makeOwner() {
+  const man = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: 0x8d5a3b, roughness: 0.8 });
+  const shirt = new THREE.MeshStandardMaterial({ color: 0xf2c230, roughness: 0.8 });
+  const jeans = new THREE.MeshStandardMaterial({ color: 0x2d4d7a, roughness: 0.9 });
+  const cap = new THREE.MeshStandardMaterial({ color: 0x1f3a22, roughness: 0.8 });
+  const shoe = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.6 });
+
+  for (const s of [-1, 1]) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.11, 0.9, 8), jeans);
+    leg.position.set(0.14 * s, 0.5, 0);
+    man.add(leg);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.3), shoe);
+    foot.position.set(0.14 * s, 0.05, 0.05);
+    man.add(foot);
+  }
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.7, 0.3), shirt);
+  torso.position.y = 1.3;
+  man.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 12), skin);
+  head.position.y = 1.87;
+  man.add(head);
+  const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.21, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), cap);
+  capTop.position.y = 1.9;
+  man.add(capTop);
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.2), cap);
+  visor.position.set(0, 1.92, 0.2);
+  man.add(visor);
+
+  const arms = {};
+  for (const [name, s] of [['right', -1], ['left', 1]]) {
+    const yaw = new THREE.Group();
+    yaw.position.set(0.34 * s, 1.58, 0);
+    const pitch = new THREE.Group();
+    yaw.add(pitch);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.06, 0.65, 8), skin);
+    arm.position.y = -0.32;
+    pitch.add(arm);
+    const hand = new THREE.Object3D();
+    hand.position.y = -0.68;
+    pitch.add(hand);
+    man.add(yaw);
+    arms[name] = { yaw, pitch, hand };
+  }
+  man.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  man.userData = { arms };
+  return man;
+}
+
+/* ================= Frisbee ================= */
+function makeDisc() {
+  const pts = [
+    new THREE.Vector2(0.0, 0.035), new THREE.Vector2(0.18, 0.04), new THREE.Vector2(0.26, 0.025),
+    new THREE.Vector2(0.29, 0.0), new THREE.Vector2(0.285, -0.035), new THREE.Vector2(0.26, -0.04),
+  ];
+  const disc = new THREE.Group();
+  const mesh = new THREE.Mesh(
+    new THREE.LatheGeometry(pts, 32),
+    new THREE.MeshStandardMaterial({ color: 0xff5a1f, roughness: 0.45, side: THREE.DoubleSide })
+  );
+  mesh.castShadow = true;
+  disc.add(mesh);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.012, 6, 28), new THREE.MeshBasicMaterial({ color: 0xfff3e0 }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.04;
+  disc.add(ring);
+  return disc;
+}
+
+const dog = makeDog();
+scene.add(dog);
+const owner = makeOwner();
+scene.add(owner);
+const disc = makeDisc();
+scene.add(disc);
+
+const shadowBlob = new THREE.Mesh(
+  new THREE.CircleGeometry(0.35, 24),
+  new THREE.MeshBasicMaterial({ color: 0x0d1f0d, transparent: true, opacity: 0.35, depthWrite: false })
+);
+shadowBlob.rotation.x = -Math.PI / 2;
+shadowBlob.position.y = 0.03;
+scene.add(shadowBlob);
+
+const landRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.9, 1.15, 40),
+  new THREE.MeshBasicMaterial({ color: 0xfff3e0, transparent: true, opacity: 0.8, depthWrite: false })
+);
+landRing.rotation.x = -Math.PI / 2;
+landRing.position.y = 0.04;
+landRing.visible = false;
+scene.add(landRing);
+
+// Bounce-arrow over the owner while the dog carries the disc back
+const arrow = new THREE.Mesh(
+  new THREE.ConeGeometry(0.25, 0.5, 4),
+  new THREE.MeshBasicMaterial({ color: 0xff5a1f })
+);
+arrow.rotation.x = Math.PI;
+arrow.visible = false;
+scene.add(arrow);
+
+/* ================= Flight model ================= */
+// Simple frisbee aerodynamics: drag, lift proportional to the square of
+// horizontal speed (capped below gravity) and a sideways curve.
+function stepDisc(p, v, curve, dt) {
+  const sh = Math.hypot(v.x, v.z);
+  const sp = v.length();
+  v.multiplyScalar(1 - 0.02 * sp * dt);
+  const lift = Math.min(0.05 * sh * sh, 9.2);
+  v.y += (lift - 9.8) * dt;
+  if (sh > 0.1) {
+    const lx = -v.z / sh, lz = v.x / sh;
+    v.x += lx * curve * sh * dt;
+    v.z += lz * curve * sh * dt;
+  }
+  p.addScaledVector(v, dt);
+}
+function predictLanding(p0, v0, curve) {
+  const p = p0.clone(), v = v0.clone();
+  for (let i = 0; i < 1200 && p.y > 0.06; i++) stepDisc(p, v, curve, 1 / 120);
+  return p;
+}
+
+/* ================= Audio ================= */
+let actx = null;
+function initAudio() {
+  if (actx) return;
+  try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+}
+function tone(freq, dur, type = 'sine', vol = 0.15, slideTo = null) {
+  if (!actx) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(actx.destination);
+  o.start(t);
+  o.stop(t + dur);
+}
+const sfx = {
+  bark() { tone(520, 0.09, 'square', 0.08, 260); setTimeout(() => tone(480, 0.11, 'square', 0.08, 220), 120); },
+  whoosh() { tone(900, 0.35, 'triangle', 0.05, 300); },
+  catch() { tone(660, 0.1, 'triangle', 0.15); setTimeout(() => tone(990, 0.18, 'triangle', 0.15), 90); },
+  big() { [660, 830, 990, 1320].forEach((f, i) => setTimeout(() => tone(f, 0.16, 'triangle', 0.13), i * 70)); },
+  miss() { tone(300, 0.35, 'sawtooth', 0.06, 120); },
+  jump() { tone(300, 0.12, 'sine', 0.08, 600); },
+  deliver() { tone(520, 0.1, 'sine', 0.12); setTimeout(() => tone(780, 0.12, 'sine', 0.12), 80); },
+};
+
+/* ================= Input ================= */
+const keys = new Set();
+const input = { x: 0, z: 0, jump: false, sprint: false };
+window.addEventListener('keydown', (e) => {
+  keys.add(e.code);
+  if (e.code === 'Space') { input.jump = true; e.preventDefault(); }
+  if (e.code.startsWith('Arrow')) e.preventDefault();
+});
+window.addEventListener('keyup', (e) => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
+
+const isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+if (isTouch) document.body.classList.add('is-touch');
+const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
+const stickBase = $('stickBase'), stickKnob = $('stickKnob');
+window.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' || stick.id !== null) return;
+  if (e.target.closest('.btn-round, .screen')) return;
+  if (e.clientX > window.innerWidth * 0.6) return;
+  stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY; stick.x = stick.y = 0;
+  stickBase.style.left = e.clientX + 'px';
+  stickBase.style.top = e.clientY + 'px';
+  stickBase.classList.add('on');
+  stickKnob.style.transform = '';
+});
+window.addEventListener('pointermove', (e) => {
+  if (e.pointerId !== stick.id) return;
+  let dx = e.clientX - stick.ox, dy = e.clientY - stick.oy;
+  const d = Math.hypot(dx, dy), max = 50;
+  if (d > max) { dx *= max / d; dy *= max / d; }
+  stick.x = dx / max; stick.y = dy / max;
+  stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+});
+const endStick = (e) => {
+  if (e.pointerId !== stick.id) return;
+  stick.id = null; stick.x = stick.y = 0;
+  stickBase.classList.remove('on');
+};
+window.addEventListener('pointerup', endStick);
+window.addEventListener('pointercancel', endStick);
+
+function holdButton(el, onDown, onUp) {
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.classList.add('down'); onDown(); });
+  const up = () => { el.classList.remove('down'); onUp && onUp(); };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', up);
+}
+let touchSprint = false;
+holdButton($('btnJump'), () => { input.jump = true; });
+holdButton($('btnSprint'), () => { touchSprint = true; }, () => { touchSprint = false; });
+
+function readInput() {
+  let x = 0, z = 0;
+  if (keys.has('KeyW') || keys.has('KeyZ') || keys.has('ArrowUp')) z += 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) z -= 1;
+  if (keys.has('KeyA') || keys.has('KeyQ') || keys.has('ArrowLeft')) x -= 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
+  if (stick.id !== null) { x += stick.x; z -= stick.y; }
+  const len = Math.hypot(x, z);
+  if (len > 1) { x /= len; z /= len; }
+  input.x = x; input.z = z;
+  input.sprint = keys.has('ShiftLeft') || keys.has('ShiftRight') || touchSprint;
+}
+
+/* ================= HUD helpers ================= */
+const ui = {
+  score: $('score'), status: $('status'), popup: $('popup'), combo: $('combo'),
+  lives: [...document.querySelectorAll('.life')], stamina: $('stamina'), staminaFill: $('staminaFill'),
+};
+function setStatus(t) { if (ui.status.textContent !== t) ui.status.textContent = t; }
+function popup(main, sub = '') {
+  ui.popup.innerHTML = '';
+  ui.popup.append(main);
+  if (sub) { const s = document.createElement('span'); s.textContent = sub; ui.popup.append(s); }
+  ui.popup.classList.remove('show');
+  void ui.popup.offsetWidth;
+  ui.popup.classList.add('show');
+}
+function readBest() { try { return Number(localStorage.getItem('freesbee-best')) || 0; } catch (e) { return 0; } }
+function writeBest(v) { try { localStorage.setItem('freesbee-best', String(v)); } catch (e) { /* storage unavailable */ } }
+
+/* ================= Game state ================= */
+const G = {
+  running: false,
+  phase: 'intro',   // windup | flying | ground | carrying | handing | over
+  timer: 0,
+  score: 0, lives: 3, combo: 0, throws: 0, catches: 0, bestCombo: 0,
+  dogPos: new THREE.Vector3(), dogVel: new THREE.Vector3(), dogYaw: 0, dogVy: 0,
+  onGround: true, stamina: 1, tired: false, legPhase: 0,
+  discPos: new THREE.Vector3(), discVel: new THREE.Vector3(), discCurve: 0, discSpin: 0,
+  throwDir: new THREE.Vector3(), throwYaw: 0,
+  camYaw: Math.PI, camFocus: new THREE.Vector3(),
+  missedThisThrow: false,
+};
+
+function resetGame() {
+  Object.assign(G, {
+    score: 0, lives: 3, combo: 0, throws: 0, catches: 0, bestCombo: 0,
+    dogYaw: Math.PI, dogVy: 0, onGround: true, stamina: 1, tired: false,
+    camYaw: 0,
+  });
+  G.dogPos.set(0, 0, 3);
+  G.dogVel.set(0, 0, 0);
+  owner.position.set(0, 0, 0);
+  owner.rotation.y = 0;
+  G.camFocus.set(0, 1, 0);
+  ui.lives.forEach((l) => l.classList.remove('lost'));
+  ui.score.textContent = '0';
+  ui.combo.hidden = true;
+  startWindup(1.2);
+}
+
+function startWindup(delay) {
+  G.phase = 'windup';
+  G.timer = -delay;       // negative = waiting before the owner starts winding up
+  G.missedThisThrow = false;
+  const level = Math.min(G.throws, 14) / 14;
+  // Throw roughly toward the dog's side, so the dog has a fair chance.
+  const toDog = Math.atan2(G.dogPos.x - owner.position.x, G.dogPos.z - owner.position.z);
+  const spread = 0.8 + level * 0.9;
+  G.throwYaw = toDog + rand(-spread, spread);
+  G.throwDir.set(Math.sin(G.throwYaw), 0, Math.cos(G.throwYaw));
+  let hs = rand(10.5, 12.5) + level * rand(3, 6);
+  const vy = rand(2.6, 3.6) + level * rand(0, 1.2);
+  G.discCurve = (Math.random() < 0.5 ? -1 : 1) * (0.03 + level * rand(0.05, 0.22));
+  // Keep the landing point inside the field.
+  const hand = new THREE.Vector3(owner.position.x, 1.5, owner.position.z);
+  for (let i = 0; i < 12; i++) {
+    const v = G.throwDir.clone().multiplyScalar(hs); v.y = vy;
+    const land = predictLanding(hand, v, G.discCurve);
+    if (Math.hypot(land.x, land.z) < FIELD_R - 4) break;
+    hs *= 0.9;
+  }
+  G.discVel.copy(G.throwDir).multiplyScalar(hs);
+  G.discVel.y = vy;
+  setStatus('Le maître prépare son lancer… regarde où il se tourne !');
+}
+
+function releaseDisc() {
+  G.phase = 'flying';
+  G.timer = 0;
+  G.throws++;
+  const hand = owner.userData.arms.right.hand;
+  hand.getWorldPosition(G.discPos);
+  G.discPos.y = Math.max(G.discPos.y, 1.3);
+  if (G.throws <= 3) {
+    const land = predictLanding(G.discPos, G.discVel, G.discCurve);
+    landRing.position.set(land.x, 0.04, land.z);
+    landRing.visible = true;
+  }
+  sfx.whoosh();
+  setStatus('Attrape-le !');
+}
+
+function addScore(n) {
+  G.score += n;
+  ui.score.textContent = G.score.toLocaleString('fr-FR');
+}
+
+function catchDisc() {
+  const dist = Math.hypot(G.discPos.x - owner.position.x, G.discPos.z - owner.position.z);
+  const height = G.dogPos.y;
+  G.combo++;
+  G.catches++;
+  G.bestCombo = Math.max(G.bestCombo, G.combo);
+  let label = 'Attrapé !';
+  let mult = 1;
+  if (height > 0.9) { label = 'Acrobatie !'; mult = 3; }
+  else if (height > 0.25) { label = 'En plein saut !'; mult = 2; }
+  const comboMult = 1 + 0.5 * (G.combo - 1);
+  const pts = Math.round((100 + dist * 4) * mult * comboMult / 10) * 10;
+  addScore(pts);
+  popup(label, `+${pts}  ·  ${dist.toFixed(0)} m`);
+  if (mult > 1) sfx.big(); else sfx.catch();
+  setTimeout(sfx.bark, 250);
+  if (G.combo > 1) { ui.combo.hidden = false; ui.combo.textContent = `Combo ×${comboMult.toFixed(1).replace('.0', '')}`; }
+  G.phase = 'carrying';
+  landRing.visible = false;
+  setStatus('Bravo ! Rapporte le frisbee au maître');
+}
+
+function discLanded() {
+  G.phase = 'ground';
+  G.timer = 0;
+  G.discPos.y = 0.05;
+  G.discVel.y = 0;
+  G.discVel.multiplyScalar(0.45);
+  G.combo = 0;
+  ui.combo.hidden = true;
+  landRing.visible = false;
+  G.lives--;
+  ui.lives.forEach((l, i) => l.classList.toggle('lost', i >= G.lives));
+  sfx.miss();
+  if (G.lives <= 0) {
+    popup('Raté !');
+    setStatus('Plus de frisbee…');
+    setTimeout(gameOver, 1400);
+  } else {
+    popup('Raté !', G.lives === 1 ? 'Dernière chance' : `Encore ${G.lives} essais`);
+    setStatus('Va chercher le frisbee et rapporte-le');
+  }
+}
+
+function gameOver() {
+  G.phase = 'over';
+  G.running = false;
+  const best = readBest();
+  const isRecord = G.score > best;
+  if (isRecord) writeBest(G.score);
+  $('finalScore').textContent = G.score.toLocaleString('fr-FR');
+  $('finalDetail').textContent =
+    `${G.catches} frisbee${G.catches > 1 ? 's' : ''} attrapé${G.catches > 1 ? 's' : ''} · meilleur combo ×${Math.max(1, 1 + 0.5 * (G.bestCombo - 1)).toFixed(1).replace('.0', '')} · ` +
+    (isRecord ? 'nouveau record !' : `record : ${best.toLocaleString('fr-FR')}`);
+  $('overScreen').hidden = false;
+  $('againBtn').focus();
+}
+
+function start() {
+  initAudio();
+  if (actx && actx.state === 'suspended') actx.resume();
+  $('startScreen').hidden = true;
+  $('overScreen').hidden = true;
+  resetGame();
+  G.running = true;
+  sfx.bark();
+}
+$('playBtn').addEventListener('click', start);
+$('againBtn').addEventListener('click', start);
+
+/* ================= Update ================= */
+const tmp = new THREE.Vector3();
+const mouthPos = new THREE.Vector3();
+
+function updateDog(dt, t) {
+  readInput();
+  // Camera-relative movement
+  const fx = -Math.sin(G.camYaw), fz = -Math.cos(G.camYaw);
+  const rx = -fz, rz = fx;
+  let mx = fx * input.z + rx * input.x;
+  let mz = fz * input.z + rz * input.x;
+  const moving = Math.hypot(mx, mz) > 0.05;
+
+  const wantsSprint = input.sprint && moving && !G.tired;
+  G.stamina = clamp(G.stamina + (wantsSprint ? -0.45 : 0.25) * dt, 0, 1);
+  if (G.stamina <= 0) G.tired = true;
+  if (G.tired && G.stamina > 0.35) G.tired = false;
+  const speed = wantsSprint ? SPRINT_SPEED : RUN_SPEED;
+
+  const accel = G.onGround ? 40 : 12;
+  G.dogVel.x = damp(G.dogVel.x, mx * speed, accel / speed, dt);
+  G.dogVel.z = damp(G.dogVel.z, mz * speed, accel / speed, dt);
+
+  if (input.jump && G.onGround && G.running) {
+    G.dogVy = 8.2;
+    G.onGround = false;
+    sfx.jump();
+  }
+  input.jump = false;
+  if (!G.onGround) {
+    G.dogVy -= GRAVITY_DOG * dt;
+    G.dogPos.y += G.dogVy * dt;
+    if (G.dogPos.y <= 0) { G.dogPos.y = 0; G.dogVy = 0; G.onGround = true; }
+  }
+
+  G.dogPos.x += G.dogVel.x * dt;
+  G.dogPos.z += G.dogVel.z * dt;
+  const r = Math.hypot(G.dogPos.x, G.dogPos.z);
+  if (r > FIELD_R) { G.dogPos.x *= FIELD_R / r; G.dogPos.z *= FIELD_R / r; }
+  // Don't run through the owner
+  tmp.set(G.dogPos.x - owner.position.x, 0, G.dogPos.z - owner.position.z);
+  if (tmp.length() < 0.8) { tmp.setLength(0.8); G.dogPos.x = owner.position.x + tmp.x; G.dogPos.z = owner.position.z + tmp.z; }
+
+  const hspeed = Math.hypot(G.dogVel.x, G.dogVel.z);
+  if (hspeed > 0.5) G.dogYaw = angleDamp(G.dogYaw, Math.atan2(G.dogVel.x, G.dogVel.z), 12, dt);
+
+  dog.position.copy(G.dogPos);
+  dog.rotation.y = G.dogYaw;
+
+  // Animation
+  const u = dog.userData;
+  G.legPhase += dt * (4 + hspeed * 1.3);
+  const stride = clamp(hspeed / RUN_SPEED, 0, 1.3);
+  if (G.onGround) {
+    for (const leg of u.legs) {
+      // Gallop: front pair and back pair offset
+      const off = (leg.front ? 0 : Math.PI) + (leg.x > 0 ? 0.35 : 0);
+      leg.pivot.rotation.x = Math.sin(G.legPhase + off) * 0.9 * stride;
+    }
+    u.rig.position.y = Math.abs(Math.sin(G.legPhase)) * 0.08 * stride;
+    u.rig.rotation.x = Math.sin(G.legPhase) * 0.06 * stride;
+  } else {
+    for (const leg of u.legs) leg.pivot.rotation.x = damp(leg.pivot.rotation.x, leg.front ? -1.1 : 1.0, 12, dt);
+    u.rig.position.y = 0;
+    u.rig.rotation.x = damp(u.rig.rotation.x, -0.25, 8, dt);
+  }
+  const happy = G.phase === 'carrying' || G.phase === 'handing';
+  u.tail.rotation.z = Math.sin(t * (happy ? 22 : 10)) * (happy ? 0.8 : 0.4);
+  for (const e of u.ears) e.pivot.rotation.x = -Math.min(hspeed / 12, 1) * 0.9 - (G.onGround ? 0 : 0.6);
+  u.tongue.visible = G.phase !== 'carrying' && G.phase !== 'handing';
+
+  // Head tracks the frisbee in flight
+  if (G.phase === 'flying' || G.phase === 'windup') {
+    tmp.copy(G.discPos).sub(G.dogPos);
+    const localYaw = Math.atan2(tmp.x, tmp.z) - G.dogYaw;
+    const wrapped = Math.atan2(Math.sin(localYaw), Math.cos(localYaw));
+    u.head.rotation.y = damp(u.head.rotation.y, clamp(wrapped, -0.9, 0.9), 8, dt);
+    const pitch = -Math.atan2(tmp.y - 1, Math.hypot(tmp.x, tmp.z));
+    u.head.rotation.x = damp(u.head.rotation.x, clamp(pitch, -0.8, 0.3), 8, dt);
+  } else {
+    u.head.rotation.y = damp(u.head.rotation.y, 0, 6, dt);
+    u.head.rotation.x = damp(u.head.rotation.x, 0, 6, dt);
+  }
+
+  ui.staminaFill.style.transform = `scaleX(${G.stamina.toFixed(3)})`;
+  ui.stamina.classList.toggle('tired', G.tired);
+}
+
+function updateOwner(dt, t) {
+  const { arms } = owner.userData;
+  const R = arms.right, L = arms.left;
+  let targetYaw = Math.atan2(G.dogPos.x - owner.position.x, G.dogPos.z - owner.position.z);
+
+  if (G.phase === 'windup') {
+    G.timer += dt;
+    if (G.timer >= 0) {
+      targetYaw = G.throwYaw;
+      const k = clamp(G.timer / 0.9, 0, 1);
+      // Backhand: arm swings across the chest, then snaps out.
+      R.pitch.rotation.x = damp(R.pitch.rotation.x, -Math.PI / 2, 10, dt);
+      R.yaw.rotation.y = damp(R.yaw.rotation.y, k < 0.75 ? 1.9 : -1.0, k < 0.75 ? 6 : 30, dt);
+      if (G.timer > 0.95) releaseDisc();
+    } else {
+      R.pitch.rotation.x = damp(R.pitch.rotation.x, -0.3, 6, dt);
+      R.yaw.rotation.y = damp(R.yaw.rotation.y, 0, 6, dt);
+    }
+    L.pitch.rotation.x = damp(L.pitch.rotation.x, 0.1, 6, dt);
+  } else if (G.phase === 'flying') {
+    R.yaw.rotation.y = damp(R.yaw.rotation.y, -1.2, 6, dt);
+    R.pitch.rotation.x = damp(R.pitch.rotation.x, -1.3, 4, dt);
+    targetYaw = owner.rotation.y;
+  } else if (G.phase === 'carrying' || G.phase === 'ground') {
+    // Wave the dog back with the left arm
+    R.yaw.rotation.y = damp(R.yaw.rotation.y, 0, 5, dt);
+    R.pitch.rotation.x = damp(R.pitch.rotation.x, 0, 5, dt);
+    L.pitch.rotation.x = damp(L.pitch.rotation.x, 0, 6, dt);
+    L.yaw.rotation.y = 0;
+    L.pitch.rotation.z = G.phase === 'carrying' ? 2.6 + Math.sin(t * 9) * 0.35 : damp(L.pitch.rotation.z, 0, 6, dt);
+  } else {
+    R.yaw.rotation.y = damp(R.yaw.rotation.y, 0, 5, dt);
+    R.pitch.rotation.x = damp(R.pitch.rotation.x, 0, 5, dt);
+    L.pitch.rotation.z = damp(L.pitch.rotation.z, 0, 6, dt);
+  }
+  if (G.phase !== 'carrying') L.pitch.rotation.z = damp(L.pitch.rotation.z, 0, 6, dt);
+  owner.rotation.y = angleDamp(owner.rotation.y, targetYaw, 6, dt);
+}
+
+function updateDisc(dt) {
+  const mouth = dog.userData.mouth;
+  mouth.getWorldPosition(mouthPos);
+
+  if (G.phase === 'windup' || G.phase === 'handing' || G.phase === 'intro') {
+    owner.userData.arms.right.hand.getWorldPosition(G.discPos);
+    disc.position.copy(G.discPos);
+    disc.rotation.set(Math.PI / 2 - 0.3, 0, 0);
+  } else if (G.phase === 'flying') {
+    stepDisc(G.discPos, G.discVel, G.discCurve, dt);
+    G.timer += dt;
+    G.discSpin += dt * 25;
+    disc.position.copy(G.discPos);
+    const bank = -G.discCurve * 2.2;
+    disc.rotation.set(0, 0, 0);
+    disc.rotation.z = bank;
+    disc.rotation.y = G.discSpin;
+    // Catch test
+    const dx = G.discPos.x - mouthPos.x, dz = G.discPos.z - mouthPos.z, dy = G.discPos.y - mouthPos.y;
+    if (G.timer > 0.2 && Math.hypot(dx, dz) < 0.8 && Math.abs(dy) < 0.6) catchDisc();
+    else if (G.discPos.y <= 0.06) discLanded();
+  } else if (G.phase === 'ground' || G.phase === 'over') {
+    const sh = Math.hypot(G.discVel.x, G.discVel.z);
+    if (sh > 0.01) {
+      const nsh = Math.max(0, sh - 9 * dt);
+      G.discVel.x *= nsh / sh; G.discVel.z *= nsh / sh;
+      G.discPos.x += G.discVel.x * dt; G.discPos.z += G.discVel.z * dt;
+    }
+    G.discPos.y = 0.05;
+    disc.position.copy(G.discPos);
+    disc.rotation.set(0, disc.rotation.y, 0);
+    G.timer += dt;
+    if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4 &&
+        Math.hypot(G.discPos.x - G.dogPos.x, G.discPos.z - G.dogPos.z) < 1.1 && G.dogPos.y < 0.3) {
+      G.phase = 'carrying';
+      setStatus('Rapporte le frisbee au maître');
+    }
+  } else if (G.phase === 'carrying') {
+    G.discPos.copy(mouthPos);
+    disc.position.copy(mouthPos);
+    disc.rotation.set(Math.PI / 2, G.dogYaw, 0, 'YXZ');
+    const d = Math.hypot(G.dogPos.x - owner.position.x, G.dogPos.z - owner.position.z);
+    if (d < 2.2) {
+      G.phase = 'handing';
+      if (G.combo > 0) { addScore(50); popup('Bon chien !', '+50'); }
+      sfx.deliver();
+      startWindup(0.9);
+      G.phase = 'windup';
+    }
+  }
+
+  // Shadow and target ring
+  const flying = G.phase === 'flying';
+  shadowBlob.visible = flying;
+  if (flying) {
+    shadowBlob.position.set(G.discPos.x, 0.03, G.discPos.z);
+    const s = 1 + G.discPos.y * 0.12;
+    shadowBlob.scale.set(s, s, s);
+    shadowBlob.material.opacity = clamp(0.45 - G.discPos.y * 0.04, 0.15, 0.45);
+  }
+  if (landRing.visible) landRing.scale.setScalar(1 + Math.sin(performance.now() / 150) * 0.08);
+
+  arrow.visible = G.phase === 'carrying';
+  if (arrow.visible) arrow.position.set(owner.position.x, 2.7 + Math.sin(performance.now() / 180) * 0.2, owner.position.z);
+  arrow.rotation.y += dt * 3;
+
+  if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4) setStatus('Va chercher le frisbee et rapporte-le');
+}
+
+function updateCamera(dt) {
+  let focus;
+  if (G.phase === 'flying' || G.phase === 'ground') focus = G.discPos;
+  else focus = owner.position;
+  G.camFocus.x = damp(G.camFocus.x, focus.x, 5, dt);
+  G.camFocus.z = damp(G.camFocus.z, focus.z, 5, dt);
+  G.camFocus.y = damp(G.camFocus.y, Math.max(focus.y, 1), 5, dt);
+
+  const dx = G.dogPos.x - G.camFocus.x, dz = G.dogPos.z - G.camFocus.z;
+  if (Math.hypot(dx, dz) > 3) {
+    G.camYaw = angleDamp(G.camYaw, Math.atan2(dx, dz), G.phase === 'windup' ? 1.5 : 2.2, dt);
+  }
+  const dist = 8.5, height = 4.2;
+  const cx = G.dogPos.x + Math.sin(G.camYaw) * dist;
+  const cz = G.dogPos.z + Math.cos(G.camYaw) * dist;
+  const cy = height + G.dogPos.y * 0.5;
+  camera.position.set(
+    damp(camera.position.x, cx, 8, dt),
+    damp(camera.position.y, cy, 8, dt),
+    damp(camera.position.z, cz, 8, dt)
+  );
+  const look = tmp.set(
+    G.dogPos.x + (G.camFocus.x - G.dogPos.x) * 0.25,
+    1.2 + G.dogPos.y * 0.5 + clamp(G.camFocus.y - 1, 0, 6) * 0.25,
+    G.dogPos.z + (G.camFocus.z - G.dogPos.z) * 0.25
+  );
+  camera.lookAt(look);
+
+  sun.position.set(G.dogPos.x + 25, 45, G.dogPos.z + 15);
+  sun.target.position.copy(G.dogPos);
+}
+
+/* ================= Loop ================= */
+const clock = new THREE.Clock();
+G.dogPos.set(0, 0, 3);
+G.dogYaw = Math.PI;
+camera.position.set(0, 4, 12);
+
+function frame() {
+  const dt = Math.min(clock.getDelta(), 1 / 30);
+  const t = clock.elapsedTime;
+  if (G.running || G.phase === 'over') {
+    updateDog(dt, t);
+    updateOwner(dt, t);
+    updateDisc(dt);
+  } else {
+    // Idle attract mode behind the start screen: the dog wags and looks around.
+    G.camYaw += dt * 0.15;
+    updateDog(dt, t);
+    updateDisc(dt);
+  }
+  updateCamera(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
