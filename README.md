@@ -1,48 +1,83 @@
 # Freesbee 🐕🥏
 
-Petit jeu 3D en three.js : tu joues le chien, ton maître lance le frisbee, et tu dois l'attraper avant qu'il touche l'herbe.
+Jeu 3D en three.js : choisis ton chien, ton maître lance le frisbee, et tu dois l'attraper avant qu'il touche l'herbe.
 
-## Jouer
+**Jouer en ligne : https://okidoki9903.github.io/Freesbee/** (après activation de GitHub Pages, voir plus bas)
 
-Le jeu tient dans un seul fichier, `index.html` (three.js est chargé depuis jsDelivr). Il faut le servir en HTTP :
+## Les chiens
+
+Chaque race a ses qualités, notées de 1 à 10, et sa propre silhouette (taille, pattes, oreilles, queue, robe).
+
+| Chien           | Vitesse | Démarrage | Agilité | Saut | Endurance | Gueule | En bref                                  |
+|-----------------|:-------:|:---------:|:-------:|:----:|:---------:|:------:|------------------------------------------|
+| Border Collie   | 7       | 8         | 9       | 8    | 8         | 8      | Le plus complet                           |
+| Lévrier         | 10      | 9         | 4       | 5    | 4         | 5      | Très rapide, tourne large, s'épuise vite  |
+| Jack Russell    | 5       | 10        | 10      | 9    | 7         | 4      | Petit ressort, gueule courte              |
+| Berger malinois | 8       | 8         | 7       | 10   | 7         | 7      | Le meilleur sauteur (~1,8 m)              |
+| Labrador        | 6       | 5         | 5       | 5    | 9         | 10     | Rate rarement une prise, mais lourd       |
+| Husky           | 8       | 6         | 6       | 6    | 10        | 6      | Sprinte presque sans fin                  |
+| Corgi           | 4       | 8         | 9       | 3    | 8         | 6      | Tourne sur place, saute peu               |
+| Dalmatien       | 8       | 7         | 6       | 7    | 9         | 6      | Bon partout                               |
+
+- **Vitesse** : vitesse de course et de sprint.
+- **Démarrage** : accélération.
+- **Agilité** : vitesse de virage, surtout lancé.
+- **Saut** : hauteur du saut et élan du bond vers le frisbee.
+- **Endurance** : durée du sprint.
+- **Gueule** : distance à laquelle le chien peut happer le frisbee, et vitesse de disque qu'il arrive encore à tenir.
+
+## Commandes
+
+| Action   | Clavier                          | Manette (8BitDo, Xbox, PlayStation…) | Tactile                   |
+|----------|----------------------------------|--------------------------------------|---------------------------|
+| Courir   | ZQSD (AZERTY) / WASD / flèches   | Stick gauche ou croix                | Joystick (pouce à gauche) |
+| Sauter   | Espace (maintenir = plus haut)   | A ou B (maintenir = plus haut)       | Bouton « Saut »           |
+| Sprinter | Maj                              | R, ZR, L, ZL, X ou Y                 | Bouton « Sprint »         |
+| Caméra   | automatique                      | Stick droit                          | automatique               |
+| Filmer   | R                                | Select                               | Bouton rouge              |
+| Pause    | Échap ou P                       | Start                                | Bouton pause              |
+| Menu     | ◀ ▶ chien, ▲ ▼ difficulté, Entrée | Croix, A ou Start                    | Toucher                   |
+
+## Attraper le frisbee
+
+- La tête du chien peut happer le disque dans un rayon qui dépend de la « gueule » de la race, devant lui et jusqu'à environ 115° sur les côtés. Il peut donc attraper **par-dessus l'épaule** en courant dans le sens du frisbee, comme un vrai chien (bonus ×1,5).
+- Quand le disque arrive, le chien le suit des yeux, ouvre la gueule et tend le cou.
+- **Sauter près du frisbee** lance un bond calculé vers un point de la trajectoire que le chien peut vraiment atteindre (« Plongeon ! »).
+- Si le disque arrive trop vite par rapport au chien, il rebondit sur la tête (« Trop rapide ! »). S'il touche le corps, il ricoche (« Rebond ! »). Dans les deux cas, il est encore rattrapable.
+- Au sol, le chien doit amener sa truffe sur le disque pour le ramasser. Il le rapporte ensuite dans la main du maître.
+
+Points : prise simple ×1, au ras du sol ×1,5, en saut ×2, plongeon ×2,5, acrobatie ×3, plus un bonus de distance et le combo. Le mode Pro compte ×1,5.
+
+## Filmer et partager sur X
+
+1. Appuie sur **R**, **Select** ou le bouton rouge pour lancer l'enregistrement, et encore une fois pour l'arrêter (60 s max).
+2. La vidéo contient l'image du jeu, le score, le son et un bandeau avec le lien du jeu.
+3. **Télécharger la vidéo**, puis **Poster sur X** ouvre un post pré-rempli avec ton score et le lien. X ne permet pas à un site de joindre la vidéo à ta place : ajoute-la à la main.
+
+Chrome, Edge et Safari récents enregistrent en MP4, le format qu'accepte X. Firefox n'enregistre qu'en WebM.
+
+## Mise en ligne (GitHub Pages)
+
+Le workflow `.github/workflows/pages.yml` publie le jeu à chaque push. Il faut l'activer une fois :
+
+1. Sur GitHub : **Settings → Pages**.
+2. Dans **Build and deployment → Source**, choisis **GitHub Actions**.
+3. Relance le workflow (onglet **Actions → Deploy to GitHub Pages → Run workflow**) ou pousse un commit.
+
+Le jeu est alors à l'adresse https://okidoki9903.github.io/Freesbee/. Le lien affiche une carte avec image (`og.png`) quand on le poste sur X.
+
+## Lancer en local
 
 ```sh
 python3 -m http.server 8000
 # puis ouvrir http://localhost:8000
 ```
 
-## Commandes
-
-| Action   | Clavier                         | Manette (8BitDo, Xbox, PlayStation…)          | Tactile                   |
-|----------|---------------------------------|-----------------------------------------------|---------------------------|
-| Courir   | ZQSD (AZERTY) / WASD / flèches  | Stick gauche ou croix                         | Joystick (pouce à gauche) |
-| Sauter   | Espace (maintenir = plus haut)  | A ou B (maintenir = plus haut)                | Bouton « Saut »           |
-| Sprinter | Maj                             | R, ZR, L, ZL, X ou Y                          | Bouton « Sprint »         |
-| Caméra   | automatique                     | Stick droit                                   | automatique               |
-| Pause    | Échap ou P                      | Start                                         | Bouton pause              |
-
-### Manette 8BitDo
-
-La manette passe par la Gamepad API du navigateur, en Bluetooth ou en USB :
-
-1. Connecte la manette. En mode X-input (Windows/Android) elle apparaît comme une manette « standard ». Les modes Switch et D-input marchent aussi.
-2. Ouvre le jeu et appuie sur un bouton : un navigateur ne signale une manette qu'après un premier appui. Le badge « 8BitDo » apparaît alors en haut à droite.
-3. Appuie sur A ou Start pour lancer la partie.
-
-Sauter et sprinter sont répartis sur plusieurs boutons, donc les dispositions Nintendo (A/B inversés) et Xbox marchent sans rien régler. La manette vibre quand tu attrapes le frisbee, si le navigateur le permet.
-
-## Règles
-
-- Le maître se tourne vers la direction du lancer juste avant de lancer : observe-le.
-- Il varie ses lancers : plané (haut et lent), tendu (rapide et bas), courbé (penché sur le côté).
-- Le vent se lève au fil de la partie (flèche en haut à gauche). Face au vent, le frisbee monte ; vent dans le dos, il file.
-- Prise au sol ×1, en plein saut ×2, acrobatie (saut très haut) ×3, prise au ras du sol ×1,5, plus un bonus de distance.
-- Les prises consécutives montent le combo (×1,5, ×2…). Rapporter le frisbee après une prise donne +50.
-- Un frisbee qui touche le sol coûte une vie et remet le combo à zéro. 3 frisbees au sol : fin de partie.
-
 ## Sous le capot
 
-- **Vol du frisbee** : portance et traînée calculées à partir de l'angle d'attaque entre l'air et le plan du disque (coefficients de Morrison/Hummel). Le moment de tangage devient un roulis par effet gyroscopique : le disque tourne un peu à haute vitesse, puis « fade » en ralentissant. Le vent modifie le flux d'air vu par le disque.
-- **Au sol** : le frisbee rebondit, glisse avec frottement, puis se pose à plat.
-- **Chien** : physique à pas fixe (120 Hz), accélération et freinage, rayon de virage qui grandit avec la vitesse, dérapage en demi-tour, saut à hauteur variable avec tampon d'entrée, réception amortie. La prise est testée sur toute la trajectoire du disque entre deux pas, pour qu'il ne « traverse » pas la gueule.
-- **Rendu** : tone mapping ACES, ciel dégradé avec halo solaire, nuages, ~70 000 brins d'herbe instanciés qui ondulent au vent et s'écartent sous les pattes, particules (poussière, touffes d'herbe, confettis), traînée derrière le frisbee, oreilles et queue sur ressorts, caméra avec FOV dynamique et secousses.
+- `src/dog.js` : chien procédural. Chaque patte a trois segments pilotés par cinématique inverse (IK à deux os plus le pied), pour que les pattes se posent au sol sans glisser. L'allure passe du pas au trot puis au galop rotatoire selon la vitesse rapportée à la taille des pattes, avec l'ordre d'appui de chaque allure. La colonne se plie en deux moitiés au galop. Oreilles et queue sont montées sur ressorts.
+- `src/owner.js` : maître articulé, animé par poses clés. Pour le revers : pas en avant, torsion hanches puis épaules, bras replié sur la poitrine, déroulé et accompagnement. Il se baisse aussi pour reprendre le frisbee dans la gueule du chien.
+- `src/aero.js` : vol du frisbee, avec portance et traînée selon l'angle d'attaque (coefficients de Morrison/Hummel), roulis gyroscopique (turn et fade) et vent.
+- `src/main.js` : physique à 120 Hz, inertie du chien, rayon de virage selon la vitesse, dérapages, saut à hauteur variable, bond d'interception, zone de prise, rebonds, ralenti sur les belles prises, caméra.
+- `src/recorder.js` : capture du canvas et du son avec MediaRecorder, avec le score et le lien dessinés dans la vidéo.
+- `src/world.js`, `src/fx.js`, `src/audio.js`, `src/input.js` : décor, particules et traînée, sons, clavier/tactile/manette.

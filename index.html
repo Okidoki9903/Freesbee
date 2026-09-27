@@ -4,6 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Freesbee</title>
+<meta name="description" content="Choisis ton chien et attrape le frisbee que ton maître lance. Jeu 3D gratuit dans le navigateur, au clavier, au tactile ou à la manette.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Freesbee">
+<meta property="og:description" content="Choisis ton chien et attrape le frisbee. Jeu 3D gratuit, joue direct dans le navigateur.">
+<meta property="og:url" content="https://okidoki9903.github.io/Freesbee/">
+<meta property="og:image" content="https://okidoki9903.github.io/Freesbee/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Freesbee">
+<meta name="twitter:description" content="Choisis ton chien et attrape le frisbee. Jeu 3D gratuit, joue direct dans le navigateur.">
+<meta name="twitter:image" content="https://okidoki9903.github.io/Freesbee/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
@@ -15,6 +25,8 @@
     --disc: #ff5a1f;
     --disc-deep: #c93d0c;
     --sky: #a9d8f0;
+    --rec: #e02b2b;
+    --bar: #3fa0d8;
     --shade: rgba(20, 40, 22, 0.55);
     --display: "Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
     --body: "Nunito", "Segoe UI", system-ui, sans-serif;
@@ -32,6 +44,8 @@
     position: fixed; inset: 0; pointer-events: none;
     background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(10, 30, 12, 0.28) 100%);
   }
+  button, a.btn { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--bar); outline-offset: 2px; }
 
   /* ---------- HUD ---------- */
   .hud {
@@ -65,10 +79,18 @@
   .pad svg { width: 20px; height: 14px; }
   .icon-btn {
     pointer-events: auto; cursor: pointer; width: 44px; height: 44px; padding: 0;
-    display: grid; place-items: center; font: inherit;
+    display: grid; place-items: center;
   }
-  .icon-btn:focus-visible { outline: 3px solid #3fa0d8; outline-offset: 2px; }
   .icon-btn svg { width: 18px; height: 18px; }
+  .rec-btn .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--rec); border: 2px solid var(--ink); box-sizing: border-box; }
+  .rec-btn.on .dot { border-radius: 3px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+  .rec-live {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    background: var(--rec); color: #fff; font-weight: 800; font-size: 13px; letter-spacing: 0.08em;
+    padding: 4px 10px; border-radius: 999px; pointer-events: none; font-variant-numeric: tabular-nums; z-index: 4;
+  }
 
   .status {
     position: fixed; left: 50%; transform: translateX(-50%);
@@ -105,7 +127,7 @@
     transform: translateX(-50%); background: var(--ink); color: var(--paper);
     font-weight: 800; font-size: 14px; padding: 8px 14px; border-radius: 12px;
     pointer-events: none; opacity: 0; transition: opacity .3s; max-width: calc(100% - 32px);
-    text-align: center;
+    text-align: center; z-index: 5;
   }
   .toast.show { opacity: 1; }
   body.is-touch:not(.pad-active) .status { bottom: calc(env(safe-area-inset-bottom, 0px) + 142px); }
@@ -117,8 +139,9 @@
     width: min(220px, 44vw); height: 12px; border: 3px solid var(--ink);
     border-radius: 999px; background: var(--paper); overflow: hidden; pointer-events: none;
   }
-  .stamina i { display: block; height: 100%; width: 100%; background: #3fa0d8; transform-origin: left; }
+  .stamina i { display: block; height: 100%; width: 100%; background: var(--bar); transform-origin: left; }
   .stamina.tired i { background: #d85a3f; }
+  body.in-menu .hud, body.in-menu .status, body.in-menu .stamina, body.in-menu .touch, body.in-menu .combo { display: none; }
 
   /* ---------- Touch controls ---------- */
   .touch { display: none; }
@@ -146,7 +169,7 @@
   /* ---------- Screens ---------- */
   .screen {
     position: fixed; inset: 0; display: grid; place-items: center;
-    padding-inline: 16px; background: rgba(31, 58, 34, 0.35); overflow-y: auto;
+    padding-inline: 16px; background: rgba(31, 58, 34, 0.35); overflow-y: auto; z-index: 3;
   }
   .card {
     background: var(--paper); border: 4px solid var(--ink); border-radius: 22px;
@@ -154,58 +177,134 @@
     width: min(460px, 100%); box-sizing: border-box; text-align: center;
     display: grid; gap: 14px;
   }
-  .card h1 {
-    margin: 0; font-family: var(--display); font-weight: 400;
-    font-size: clamp(48px, 14vw, 72px); line-height: 0.9; color: var(--disc);
-    -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; letter-spacing: 0.01em;
-  }
   .card h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 36px; text-wrap: balance; }
   .card p { margin: 0; line-height: 1.45; font-size: 15px; text-wrap: pretty; }
-  .controls { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; text-align: left; font-size: 14px; align-items: center; }
+  .final { font-family: var(--display); font-size: 56px; line-height: 1; color: var(--disc); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
+  .btns { display: grid; gap: 10px; }
+  .btns.two { display: flex; }
+  .btns.two > * { flex: 1 1 0; min-width: 0; }
+  .play, .btn {
+    font-family: var(--display); font-size: 22px; color: var(--paper); background: var(--disc);
+    border: 3px solid var(--ink); border-radius: 16px; padding: 11px 16px; cursor: pointer;
+    box-shadow: 0 5px 0 var(--ink); -webkit-text-stroke: 1px var(--ink); text-decoration: none;
+    display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  .btn { flex-direction: row; gap: 8px; }
+  .btn.alt { background: var(--paper); color: var(--ink); -webkit-text-stroke: 0; font-size: 18px; }
+  .btn.dark { background: #0f1419; color: #fff; -webkit-text-stroke: 0; font-size: 18px; }
+  .btn svg { width: 18px; height: 18px; }
+  .play:active, .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+  .play small { font-family: var(--body); font-size: 13px; -webkit-text-stroke: 0; opacity: 0.9; display: block; }
+  .card p.note { font-size: 13px; opacity: 0.8; }
+
+  /* Start / breed selection: the dog stays visible above the panel */
+  .select {
+    place-items: end center; align-content: end; background: linear-gradient(180deg, rgba(31,58,34,0) 30%, rgba(31,58,34,0.35) 100%);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  }
+  .brand {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 0; right: 0; text-align: center;
+    pointer-events: none;
+  }
+  .brand h1 {
+    margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(44px, 12vw, 76px); line-height: 0.95;
+    color: var(--disc); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill;
+  }
+  .brand p { margin: 4px 0 0; font-weight: 800; color: var(--paper); text-shadow: 0 2px 0 var(--ink), 0 0 8px rgba(0,0,0,.3); font-size: 15px; padding-inline: 16px; }
+  .panel {
+    background: var(--paper); border: 4px solid var(--ink); border-radius: 22px; box-shadow: 0 8px 0 var(--ink);
+    width: min(520px, 100%); box-sizing: border-box; padding: 14px 16px 16px; display: grid; gap: 12px; margin-bottom: 8px;
+  }
+  .breed-nav { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
+  .nav-btn {
+    width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ink); background: var(--disc);
+    color: var(--paper); font-family: var(--display); font-size: 24px; line-height: 1; cursor: pointer; box-shadow: 0 3px 0 var(--ink);
+    display: grid; place-items: center; padding: 0;
+  }
+  .nav-btn:active { transform: translateY(3px); box-shadow: none; }
+  .breed-info { text-align: center; min-width: 0; }
+  .breed-info h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.05; }
+  .breed-info p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.35; min-height: 2.7em; }
+  .breed-count { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; opacity: 0.6; font-variant-numeric: tabular-nums; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin: 0; }
+  .stat { display: grid; grid-template-columns: 78px 1fr; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 800; }
+  .stat dd { margin: 0; }
+  .bar { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; }
+  .bar i { height: 9px; border-radius: 2px; background: rgba(31, 58, 34, 0.14); }
+  .bar i.on { background: var(--bar); }
+  .bar.top i.on { background: var(--disc); }
+  .diff { display: grid; grid-template-columns: repeat(3, 1fr); border: 3px solid var(--ink); border-radius: 12px; overflow: hidden; }
+  .diff button {
+    border: 0; background: transparent; padding: 7px 4px; font-weight: 800; font-size: 14px; cursor: pointer; color: var(--ink);
+  }
+  .diff button + button { border-left: 3px solid var(--ink); }
+  .diff button[aria-checked="true"] { background: var(--ink); color: var(--paper); }
+  .diff-note { font-size: 12.5px; text-align: center; margin: -4px 0 0; opacity: 0.8; min-height: 1.3em; }
+  details.help { font-size: 13.5px; text-align: left; }
+  details.help summary { cursor: pointer; font-weight: 800; text-align: center; list-style: none; opacity: 0.75; }
+  details.help summary::-webkit-details-marker { display: none; }
+  .controls { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; align-items: center; margin: 10px 0 0; }
   .controls dt { font-weight: 800; }
   .controls dd { margin: 0; }
   .ctrl-set { display: none; }
   body:not(.is-touch):not(.pad-active) .ctrl-keys { display: contents; }
   body.is-touch:not(.pad-active) .ctrl-touch { display: contents; }
   body.pad-active .ctrl-pad { display: contents; }
-  .tips { text-align: left; display: grid; gap: 4px; font-size: 13.5px; margin: 0; padding-left: 18px; }
   kbd {
     font-family: var(--body); font-weight: 800; font-size: 12px; border: 2px solid var(--ink);
     border-bottom-width: 3px; border-radius: 6px; padding: 0 5px; background: #fff; white-space: nowrap;
   }
-  kbd.round { border-radius: 999px; min-width: 12px; display: inline-block; text-align: center; }
-  .final { font-family: var(--display); font-size: 56px; line-height: 1; color: var(--disc); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
-  .play {
-    font-family: var(--display); font-size: 24px; color: var(--paper); background: var(--disc);
-    border: 3px solid var(--ink); border-radius: 16px; padding: 12px 20px; cursor: pointer;
-    box-shadow: 0 5px 0 var(--ink); -webkit-text-stroke: 1px var(--ink);
+  kbd.round { border-radius: 999px; }
+  /* Landscape: panel on the right, dog on the left */
+  @media (min-width: 740px) and (min-aspect-ratio: 5/4) {
+    .select { place-items: center end; align-content: center; padding-right: max(16px, 4vw); padding-bottom: 0; background: linear-gradient(90deg, rgba(31,58,34,0) 45%, rgba(31,58,34,0.3) 100%); }
+    .brand { text-align: left; left: max(16px, 4vw); right: auto; }
+    .brand p { padding: 0; }
+    .panel { width: min(440px, 48vw); margin-block: 12px; }
   }
-  .play small { font-family: var(--body); font-size: 13px; -webkit-text-stroke: 0; opacity: 0.9; display: block; }
-  .play:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
-  .play:focus-visible { outline: 3px solid #3fa0d8; outline-offset: 3px; }
+  @media (min-width: 740px) and (min-aspect-ratio: 5/4) and (min-height: 700px) {
+    .stats { grid-template-columns: 1fr; }
+  }
+  /* Short screens: keep the essentials */
+  @media (max-height: 520px) {
+    .brand h1 { font-size: 38px; }
+    .brand p, .diff-note, details.help { display: none; }
+    .breed-info p { min-height: 0; font-size: 12.5px; }
+    .panel { gap: 8px; padding: 10px 12px 12px; }
+    .play { padding-block: 7px; }
+  }
+  @media (max-height: 640px) and (max-aspect-ratio: 5/4) {
+    .brand h1 { font-size: 40px; }
+    .brand p { display: none; }
+    .breed-info p { min-height: 0; }
+  }
+
+  video.clip { width: 100%; max-height: 50vh; border-radius: 12px; border: 3px solid var(--ink); background: #000; }
 
   @media (prefers-reduced-motion: reduce) {
     .popup.show { animation-duration: 0.01s; animation-fill-mode: none; opacity: 1; }
+    .rec-btn.on .dot { animation: none; }
   }
 </style>
 </head>
-<body>
+<body class="in-menu">
 <div id="game"></div>
 <div class="vignette"></div>
 
 <div class="hud">
   <div class="hud-col">
-    <div class="chip"><small>Score</small><div class="score" id="score">0</div></div>
+    <div class="chip"><small id="hudBreed">Score</small><div class="score" id="score">0</div></div>
     <div class="chip wind" id="wind" title="Vent">
       <svg viewBox="0 0 24 24" id="windArrow" aria-hidden="true"><path d="M12 2 L18 12 H14 V22 H10 V12 H6 Z" fill="#3fa0d8" stroke="#1f3a22" stroke-width="1.5" stroke-linejoin="round"/></svg>
-      <span id="windText">0 m/s</span>
+      <span id="windText">Pas de vent</span>
     </div>
   </div>
   <div class="hud-col right">
     <div class="row">
-      <div class="chip lives" id="lives" aria-label="Vies restantes">
+      <div class="chip lives" aria-label="Vies restantes">
         <div class="life"></div><div class="life"></div><div class="life"></div>
       </div>
+      <button class="chip icon-btn rec-btn" id="recBtn" type="button" aria-label="Filmer la partie" title="Filmer (R / Select)"><span class="dot"></span></button>
       <button class="chip icon-btn" id="pauseBtn" type="button" aria-label="Pause">
         <svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="2" width="4" height="14" rx="1" fill="#1f3a22"/><rect x="11" y="2" width="4" height="14" rx="1" fill="#1f3a22"/></svg>
       </button>
@@ -216,6 +315,7 @@
     </div>
   </div>
 </div>
+<div class="rec-live" id="recLive" hidden>● REC <span id="recTime">0:00</span></div>
 <div class="combo" id="combo" hidden></div>
 <div class="status" id="status">Le maître t'attend…</div>
 <div class="popup" id="popup"></div>
@@ -228,44 +328,67 @@
   <div class="btn-round" id="btnJump">Saut</div>
 </div>
 
-<div class="screen" id="startScreen">
-  <div class="card">
+<!-- Start: pick a dog -->
+<div class="screen select" id="startScreen">
+  <header class="brand">
     <h1>Freesbee</h1>
-    <p>Ton maître lance le frisbee. À toi, le chien, de l'attraper avant qu'il ne touche l'herbe.</p>
-    <dl class="controls">
-      <div class="ctrl-set ctrl-keys">
-        <dt>Courir</dt><dd><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd>, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ou flèches</dd>
-        <dt>Sauter</dt><dd><kbd>Espace</kbd> (maintiens pour sauter plus haut)</dd>
-        <dt>Sprinter</dt><dd><kbd>Maj</kbd></dd>
-        <dt>Pause</dt><dd><kbd>Échap</kbd> ou <kbd>P</kbd></dd>
+    <p>Choisis ton chien. Ton maître lance, toi tu attrapes.</p>
+  </header>
+  <section class="panel" aria-label="Choix du chien">
+    <div class="breed-nav">
+      <button class="nav-btn" id="prevBreed" type="button" aria-label="Chien précédent">‹</button>
+      <div class="breed-info">
+        <div class="breed-count" id="breedCount">1 / 8</div>
+        <h2 id="breedName">Border Collie</h2>
+        <p id="breedTag"></p>
       </div>
-      <div class="ctrl-set ctrl-touch">
-        <dt>Courir</dt><dd>pouce gauche n'importe où</dd>
-        <dt>Sauter</dt><dd>bouton « Saut » (maintiens pour monter plus haut)</dd>
-        <dt>Sprinter</dt><dd>bouton « Sprint »</dd>
-      </div>
-      <div class="ctrl-set ctrl-pad">
-        <dt>Courir</dt><dd>stick gauche ou croix</dd>
-        <dt>Sauter</dt><dd><kbd class="round">A</kbd> / <kbd class="round">B</kbd> (maintiens pour monter plus haut)</dd>
-        <dt>Sprinter</dt><dd><kbd>R</kbd> <kbd>ZR</kbd> <kbd>L</kbd> <kbd>ZL</kbd>, <kbd class="round">X</kbd> ou <kbd class="round">Y</kbd></dd>
-        <dt>Caméra</dt><dd>stick droit</dd>
-        <dt>Pause</dt><dd><kbd>Start</kbd></dd>
-      </div>
-    </dl>
-    <ul class="tips">
-      <li>Le maître se tourne vers la direction du lancer juste avant de lancer.</li>
-      <li>Le vent pousse le frisbee : face au vent il monte, dos au vent il file.</li>
-      <li>Prise en plein saut ×2, acrobatie ×3. Enchaîne pour le combo.</li>
-      <li>Rapporte le frisbee au maître. 3 frisbees au sol et c'est fini.</li>
-    </ul>
-    <button class="play" id="playBtn" type="button">Jouer<small id="playHint" hidden>ou appuie sur A / Start</small></button>
-  </div>
+      <button class="nav-btn" id="nextBreed" type="button" aria-label="Chien suivant">›</button>
+    </div>
+    <dl class="stats" id="breedStats"></dl>
+    <div class="diff" role="radiogroup" aria-label="Difficulté" id="diff">
+      <button type="button" role="radio" data-diff="facile" aria-checked="false">Facile</button>
+      <button type="button" role="radio" data-diff="normal" aria-checked="true">Normal</button>
+      <button type="button" role="radio" data-diff="pro" aria-checked="false">Pro</button>
+    </div>
+    <p class="diff-note" id="diffNote"></p>
+    <button class="play" id="playBtn" type="button">Jouer<small id="playHint" hidden>A ou Start · ◀ ▶ pour changer de chien</small></button>
+    <details class="help">
+      <summary>Commandes ▾</summary>
+      <dl class="controls">
+        <div class="ctrl-set ctrl-keys">
+          <dt>Courir</dt><dd><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / flèches</dd>
+          <dt>Sauter</dt><dd><kbd>Espace</kbd>, maintenu = plus haut. Près du frisbee, le chien bondit vers lui.</dd>
+          <dt>Sprinter</dt><dd><kbd>Maj</kbd></dd>
+          <dt>Filmer</dt><dd><kbd>R</kbd></dd>
+          <dt>Pause</dt><dd><kbd>Échap</kbd> ou <kbd>P</kbd></dd>
+          <dt>Menu</dt><dd><kbd>◀</kbd><kbd>▶</kbd> chien, <kbd>▲</kbd><kbd>▼</kbd> difficulté, <kbd>Entrée</kbd> jouer</dd>
+        </div>
+        <div class="ctrl-set ctrl-touch">
+          <dt>Courir</dt><dd>pouce gauche n'importe où</dd>
+          <dt>Sauter</dt><dd>bouton « Saut », maintenu = plus haut</dd>
+          <dt>Sprinter</dt><dd>bouton « Sprint »</dd>
+          <dt>Filmer</dt><dd>bouton rouge en haut</dd>
+        </div>
+        <div class="ctrl-set ctrl-pad">
+          <dt>Courir</dt><dd>stick gauche ou croix</dd>
+          <dt>Sauter</dt><dd><kbd class="round">A</kbd> / <kbd class="round">B</kbd>, maintenu = plus haut</dd>
+          <dt>Sprinter</dt><dd><kbd>R</kbd> <kbd>ZR</kbd> <kbd>L</kbd> <kbd>ZL</kbd> <kbd class="round">X</kbd> <kbd class="round">Y</kbd></dd>
+          <dt>Caméra</dt><dd>stick droit</dd>
+          <dt>Filmer</dt><dd><kbd>Select</kbd></dd>
+          <dt>Pause</dt><dd><kbd>Start</kbd></dd>
+        </div>
+      </dl>
+    </details>
+  </section>
 </div>
 
 <div class="screen" id="pauseScreen" hidden>
   <div class="card">
     <h2>Pause</h2>
-    <button class="play" id="resumeBtn" type="button">Reprendre</button>
+    <div class="btns">
+      <button class="play" id="resumeBtn" type="button">Reprendre</button>
+      <button class="btn alt" id="menuBtn" type="button">Changer de chien</button>
+    </div>
   </div>
 </div>
 
@@ -274,1603 +397,43 @@
     <h2>Fin de la partie</h2>
     <div class="final" id="finalScore">0</div>
     <p id="finalDetail"></p>
-    <button class="play" id="againBtn" type="button">Rejouer</button>
+    <div class="btns">
+      <button class="play" id="againBtn" type="button">Rejouer</button>
+      <div class="btns two">
+        <a class="btn dark" id="shareX" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-7.2 8.2L23 22h-6.6l-5.1-6.7L5.4 22H2.3l7.7-8.8L1 2h6.8l4.6 6.1L18.9 2Zm-1.2 18h1.8L6.4 3.9H4.5L17.7 20Z"/></svg>
+          Publier
+        </a>
+        <button class="btn alt" id="copyLink" type="button">Copier le lien</button>
+      </div>
+      <button class="btn alt" id="menuBtn2" type="button">Changer de chien</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="videoScreen" hidden>
+  <div class="card">
+    <h2>Ta vidéo est prête</h2>
+    <video class="clip" id="clip" controls playsinline loop muted></video>
+    <p class="note" id="clipInfo"></p>
+    <div class="btns">
+      <a class="play" id="clipDownload" href="#" download="freesbee.mp4">Télécharger la vidéo</a>
+      <div class="btns two">
+        <button class="btn alt" id="clipShare" type="button" hidden>Partager…</button>
+        <a class="btn dark" id="clipX" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-7.2 8.2L23 22h-6.6l-5.1-6.7L5.4 22H2.3l7.7-8.8L1 2h6.8l4.6 6.1L18.9 2Zm-1.2 18h1.8L6.4 3.9H4.5L17.7 20Z"/></svg>
+          Poster sur X
+        </a>
+      </div>
+      <p class="note">X ne permet pas d'ajouter la vidéo à ta place : télécharge-la, puis joins-la au post. Le lien du jeu est déjà dans le texte.</p>
+      <button class="btn alt" id="clipClose" type="button">Fermer</button>
+    </div>
   </div>
 </div>
 
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
-<script type="module">
-import * as THREE from 'three';
-
-const $ = (id) => document.getElementById(id);
-const rand = (a, b) => a + Math.random() * (b - a);
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const lerp = (a, b, t) => a + (b - a) * t;
-const damp = (a, b, rate, dt) => a + (b - a) * (1 - Math.exp(-rate * dt));
-const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
-const angleDamp = (a, b, rate, dt) => a + wrapAngle(b - a) * (1 - Math.exp(-rate * dt));
-const UP = new THREE.Vector3(0, 1, 0);
-
-const IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
-if (IS_TOUCH) document.body.classList.add('is-touch');
-
-const FIELD_R = 48;
-const STEP = 1 / 120;          // fixed physics step
-const RUN_SPEED = 10.5;
-const SPRINT_SPEED = 14.5;
-const DOG_GRAVITY = 24;
-
-/* ======================================================================
-   Renderer, sky, light
-   ====================================================================== */
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_TOUCH ? 1.75 : 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-$('game').appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-const HORIZON = new THREE.Color(0xcfe8f2);
-scene.fog = new THREE.Fog(HORIZON, 70, 210);
-
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
-const SUN_DIR = new THREE.Vector3(0.55, 0.62, 0.35).normalize();
-
-const sky = new THREE.Mesh(
-  new THREE.SphereGeometry(400, 32, 16),
-  new THREE.ShaderMaterial({
-    side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: {
-      uHorizon: { value: HORIZON.clone() },
-      uZenith: { value: new THREE.Color(0x3f8fd6) },
-      uGround: { value: new THREE.Color(0x9fc7a0) },
-      uSunDir: { value: SUN_DIR },
-      uSunCol: { value: new THREE.Color(0xfff2d6) },
-    },
-    vertexShader: `varying vec3 vDir;
-      void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-    fragmentShader: `uniform vec3 uHorizon, uZenith, uGround, uSunDir, uSunCol; varying vec3 vDir;
-      void main(){
-        vec3 d = normalize(vDir);
-        float h = d.y;
-        vec3 col = mix(uHorizon, uZenith, pow(clamp(h, 0.0, 1.0), 0.55));
-        col = mix(col, uGround, smoothstep(0.0, -0.08, h));
-        float s = max(dot(d, uSunDir), 0.0);
-        col += uSunCol * (pow(s, 900.0) * 6.0 + pow(s, 30.0) * 0.35 + pow(s, 4.0) * 0.08);
-        gl_FragColor = vec4(col, 1.0);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }`,
-  })
-);
-sky.frustumCulled = false;
-scene.add(sky);
-
-scene.add(new THREE.HemisphereLight(0xdff1ff, 0x55703a, 1.1));
-const sun = new THREE.DirectionalLight(0xfff0d8, 2.4);
-sun.castShadow = true;
-sun.shadow.mapSize.set(IS_TOUCH ? 1024 : 2048, IS_TOUCH ? 1024 : 2048);
-Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 1, far: 140 });
-sun.shadow.bias = -0.0004;
-sun.shadow.normalBias = 0.02;
-sun.shadow.radius = 3;
-scene.add(sun, sun.target);
-
-// Drifting low-poly clouds
-const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xb8c8d8, flatShading: true, fog: false });
-const clouds = [];
-for (let i = 0; i < 14; i++) {
-  const c = new THREE.Group();
-  const puffs = 4 + Math.floor(Math.random() * 4);
-  for (let j = 0; j < puffs; j++) {
-    const p = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(5, 9), 1), cloudMat);
-    p.position.set(j * rand(5, 7) - puffs * 3, rand(-1.5, 2), rand(-3, 3));
-    p.scale.y = 0.6;
-    c.add(p);
-  }
-  const a = rand(0, Math.PI * 2), r = rand(170, 300);
-  c.position.set(Math.cos(a) * r, rand(55, 95), Math.sin(a) * r);
-  c.rotation.y = rand(0, Math.PI);
-  scene.add(c);
-  clouds.push(c);
-}
-
-function resize() {
-  const w = window.innerWidth, h = window.innerHeight;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  updateFov(0);
-}
-let baseFov = 60;
-function updateFov(extra) {
-  baseFov = camera.aspect < 1 ? 72 : 60;
-  camera.fov = baseFov + extra;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener('resize', resize);
-
-/* ======================================================================
-   Ground, grass, scenery
-   ====================================================================== */
-function lawnTexture() {
-  const c = document.createElement('canvas');
-  c.width = c.height = 256;
-  const g = c.getContext('2d');
-  for (let i = 0; i < 4; i++) {               // mowing stripes
-    g.fillStyle = i % 2 ? '#5f9a39' : '#6daa45';
-    g.fillRect(i * 64, 0, 64, 256);
-  }
-  for (let i = 0; i < 3200; i++) {
-    g.fillStyle = Math.random() < 0.5 ? 'rgba(35,70,20,0.2)' : 'rgba(170,210,110,0.16)';
-    g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 2, 2 + Math.random() * 3);
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(60, 60);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-  return t;
-}
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(600, 600),
-  new THREE.MeshLambertMaterial({ map: lawnTexture() })
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Worn patch where the owner always stands
-const worn = new THREE.Mesh(
-  new THREE.CircleGeometry(1.8, 32),
-  new THREE.MeshLambertMaterial({ color: 0x9a8a5a, transparent: true, opacity: 0.55, depthWrite: false })
-);
-worn.rotation.x = -Math.PI / 2;
-worn.position.y = 0.012;
-worn.receiveShadow = true;
-scene.add(worn);
-
-const chalk = new THREE.Mesh(
-  new THREE.RingGeometry(FIELD_R + 0.8, FIELD_R + 1.1, 160),
-  new THREE.MeshBasicMaterial({ color: 0xf4f4e8, transparent: true, opacity: 0.6, depthWrite: false })
-);
-chalk.rotation.x = -Math.PI / 2;
-chalk.position.y = 0.02;
-scene.add(chalk);
-
-// Instanced grass blades that sway in the wind and part around the dog
-const grassUniforms = { uTime: { value: 0 }, uDog: { value: new THREE.Vector3() }, uWind: { value: new THREE.Vector2(1, 0) } };
-const grassGeo = new THREE.BufferGeometry();
-grassGeo.setAttribute('position', new THREE.Float32BufferAttribute([
-  -0.04, 0, 0, 0.04, 0, 0, -0.026, 0.2, 0, 0.026, 0.2, 0, 0, 0.44, 0,
-], 3));
-grassGeo.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
-grassGeo.setAttribute('color', new THREE.Float32BufferAttribute([
-  0.24, 0.42, 0.13, 0.24, 0.42, 0.13, 0.36, 0.58, 0.19, 0.36, 0.58, 0.19, 0.6, 0.78, 0.34,
-], 3));
-grassGeo.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4]);
-const grassMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
-grassMat.onBeforeCompile = (sh) => {
-  Object.assign(sh.uniforms, grassUniforms);
-  sh.vertexShader = 'uniform float uTime; uniform vec3 uDog; uniform vec2 uWind;\n' +
-    sh.vertexShader.replace('#include <project_vertex>', `
-      vec4 wp = vec4(transformed, 1.0);
-      #ifdef USE_INSTANCING
-        wp = instanceMatrix * wp;
-      #endif
-      wp = modelMatrix * wp;
-      float hN = clamp(position.y / 0.44, 0.0, 1.0);
-      float bend = hN * hN;
-      float gust = sin(uTime * 1.6 + dot(wp.xz, uWind) * 0.25) * 0.6 + sin(uTime * 3.3 + wp.x * 0.61 - wp.z * 0.37) * 0.22 + 0.35;
-      wp.xz += uWind * gust * bend * 0.16;
-      vec2 away = wp.xz - uDog.xz;
-      float dd = length(away);
-      float push = (1.0 - smoothstep(0.15, 1.0, dd)) * bend * 0.4;
-      wp.xz += away / max(dd, 0.001) * push;
-      wp.y -= push * 0.55;
-      vec4 mvPosition = viewMatrix * wp;
-      gl_Position = projectionMatrix * mvPosition;
-    `);
-  // Blades are lit like the lawn from both sides (no flipped normal on back faces)
-  sh.fragmentShader = sh.fragmentShader.replace('#include <normal_fragment_begin>',
-    'float faceDirection = 1.0;\nvec3 normal = normalize( vNormal );\nvec3 nonPerturbedNormal = normal;');
-};
-{
-  const COUNT = IS_TOUCH ? 26000 : 70000;
-  const R = 62;
-  const grass = new THREE.InstancedMesh(grassGeo, grassMat, COUNT);
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
-  const col = new THREE.Color();
-  let n = 0;
-  while (n < COUNT) {
-    const r = R * Math.sqrt(Math.random()), a = Math.random() * Math.PI * 2;
-    const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (Math.hypot(x, z) < 1.6) continue;              // worn patch
-    if (Math.hypot(x + 2.8, z + 1.4) < 1.5) continue;  // picnic blanket
-    p.set(x, 0, z);
-    q.setFromAxisAngle(UP, Math.random() * Math.PI);
-    const h = rand(0.55, 1.35) * (r > FIELD_R + 2 ? 1.5 : 1);
-    s.set(rand(0.8, 1.3), h, 1);
-    m.compose(p, q, s);
-    grass.setMatrixAt(n, m);
-    col.setHSL(rand(0.22, 0.28), rand(0.45, 0.6), rand(0.42, 0.55));
-    grass.setColorAt(n, col);
-    n++;
-  }
-  grass.receiveShadow = true;
-  grass.frustumCulled = false;
-  scene.add(grass);
-}
-// Clover flowers
-{
-  const COUNT = IS_TOUCH ? 600 : 1400;
-  const fl = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.06, 0), new THREE.MeshLambertMaterial(), COUNT);
-  const m = new THREE.Matrix4(), col = new THREE.Color();
-  const palette = [0xffffff, 0xfff4b0, 0xffd23f, 0xf7c6e0];
-  for (let i = 0; i < COUNT; i++) {
-    const r = 60 * Math.sqrt(Math.random()), a = Math.random() * Math.PI * 2;
-    m.makeTranslation(Math.cos(a) * r, rand(0.14, 0.3), Math.sin(a) * r);
-    fl.setMatrixAt(i, m);
-    fl.setColorAt(i, col.setHex(palette[i % palette.length]));
-  }
-  scene.add(fl);
-}
-
-const trunkMat = new THREE.MeshLambertMaterial({ color: 0x6b4a2b });
-const leafMats = [0x3f7d34, 0x4d8f3a, 0x2f6b2e, 0x5a9a3c].map((c) => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
-function addTree(x, z, s) {
-  const tree = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25 * s, 0.42 * s, 3 * s, 7), trunkMat);
-  trunk.position.y = 1.5 * s;
-  tree.add(trunk);
-  const leafMat = leafMats[Math.floor(Math.random() * leafMats.length)];
-  for (let i = 0; i < 4; i++) {
-    const r = (1.7 - i * 0.28) * s;
-    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), leafMat);
-    leaf.position.set(rand(-0.8, 0.8) * s, (3 + i * 0.95) * s, rand(-0.8, 0.8) * s);
-    leaf.rotation.set(rand(0, 3), rand(0, 3), 0);
-    tree.add(leaf);
-  }
-  tree.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  tree.position.set(x, 0, z);
-  tree.rotation.y = rand(0, Math.PI * 2);
-  scene.add(tree);
-}
-for (let i = 0; i < 80; i++) {
-  const a = rand(0, Math.PI * 2);
-  addTree(Math.cos(a) * rand(FIELD_R + 7, 130), Math.sin(a) * rand(FIELD_R + 7, 130), rand(0.9, 1.7));
-}
-const bushMat = new THREE.MeshLambertMaterial({ color: 0x4f8f36, flatShading: true });
-for (let i = 0; i < 50; i++) {
-  const a = rand(0, Math.PI * 2), r = rand(FIELD_R + 3, FIELD_R + 14);
-  const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rand(0.6, 1.3), 1), bushMat);
-  b.position.set(Math.cos(a) * r, 0.35, Math.sin(a) * r);
-  b.scale.y = 0.75;
-  b.castShadow = true;
-  scene.add(b);
-}
-const blanket = new THREE.Mesh(
-  new THREE.PlaneGeometry(2.2, 1.6),
-  new THREE.MeshLambertMaterial({
-    map: (() => {
-      const c = document.createElement('canvas'); c.width = c.height = 64;
-      const g = c.getContext('2d');
-      g.fillStyle = '#f2ead6'; g.fillRect(0, 0, 64, 64);
-      g.fillStyle = 'rgba(210,60,40,0.75)';
-      for (let i = 0; i < 64; i += 16) { g.fillRect(i, 0, 8, 64); g.fillRect(0, i, 64, 8); }
-      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t;
-    })(),
-  })
-);
-blanket.rotation.x = -Math.PI / 2;
-blanket.rotation.z = 0.4;
-blanket.position.set(-2.8, 0.02, -1.4);
-blanket.receiveShadow = true;
-scene.add(blanket);
-const basket = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.32, 0.34), new THREE.MeshLambertMaterial({ color: 0xa8773f }));
-basket.position.set(-2.3, 0.16, -1.9);
-basket.rotation.y = 0.4;
-basket.castShadow = true;
-scene.add(basket);
-
-/* ======================================================================
-   Dog
-   ====================================================================== */
-function makeDog() {
-  const dog = new THREE.Group();
-  const std = (color, roughness = 0.85) => new THREE.MeshStandardMaterial({ color, roughness });
-  const fur = std(0xc98a4b), dark = std(0x5e3a20), cream = std(0xf3e6d3);
-  const black = std(0x151515, 0.35), red = std(0xd8322a, 0.6), gold = new THREE.MeshStandardMaterial({ color: 0xf2c230, metalness: 0.8, roughness: 0.3 });
-
-  const rig = new THREE.Group();
-  dog.add(rig);
-
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.27, 0.72, 8, 16), fur);
-  body.rotation.x = Math.PI / 2;
-  body.position.y = 0.68;
-  rig.add(body);
-  const saddle = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2.4), dark);
-  saddle.scale.set(1.02, 0.9, 1.5);
-  saddle.position.set(0, 0.72, -0.12);
-  rig.add(saddle);
-  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 12), cream);
-  belly.scale.set(0.92, 0.92, 1.3);
-  belly.position.set(0, 0.63, 0.3);
-  rig.add(belly);
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 0.36, 12), fur);
-  neck.position.set(0, 0.88, 0.45);
-  neck.rotation.x = 0.7;
-  rig.add(neck);
-
-  const head = new THREE.Group();
-  head.position.set(0, 1.02, 0.6);
-  rig.add(head);
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 16), fur);
-  skull.scale.set(1, 0.95, 1.05);
-  head.add(skull);
-  const blaze = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), cream);
-  blaze.scale.set(0.6, 1.4, 0.6);
-  blaze.position.set(0, 0.08, 0.2);
-  head.add(blaze);
-  const snout = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.14, 6, 12), cream);
-  snout.rotation.x = Math.PI / 2;
-  snout.position.set(0, -0.06, 0.26);
-  head.add(snout);
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.052, 12, 10), black);
-  nose.scale.set(1.2, 0.85, 1);
-  nose.position.set(0, -0.02, 0.41);
-  head.add(nose);
-  const jaw = new THREE.Group();
-  jaw.position.set(0, -0.12, 0.14);
-  const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.05, 0.22), cream);
-  jawMesh.position.z = 0.1;
-  jaw.add(jawMesh);
-  const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.02, 0.16), std(0xe86a7a, 0.5));
-  tongue.position.set(0, 0.03, 0.16);
-  tongue.rotation.x = 0.25;
-  jaw.add(tongue);
-  head.add(jaw);
-  for (const s of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.042, 12, 10), black);
-    eye.position.set(0.105 * s, 0.07, 0.19);
-    head.add(eye);
-    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    glint.position.set(0.115 * s, 0.085, 0.225);
-    head.add(glint);
-    const brow = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), dark);
-    brow.scale.set(1.4, 0.6, 0.8);
-    brow.position.set(0.1 * s, 0.14, 0.18);
-    head.add(brow);
-  }
-  const ears = [];
-  for (const s of [-1, 1]) {
-    const pivot = new THREE.Group();
-    pivot.position.set(0.16 * s, 0.17, -0.03);
-    const ear = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.16, 4, 8), dark);
-    ear.scale.set(0.55, 1, 1.2);
-    ear.position.y = -0.1;
-    pivot.add(ear);
-    pivot.rotation.z = 0.4 * s;
-    head.add(pivot);
-    ears.push({ pivot, s, a: 0, v: 0 });
-  }
-  const mouth = new THREE.Object3D();
-  mouth.position.set(0, -0.1, 0.42);
-  head.add(mouth);
-
-  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.035, 8, 20), red);
-  collar.position.set(0, 0.9, 0.5);
-  collar.rotation.x = Math.PI / 2 - 0.65;
-  rig.add(collar);
-  const tag = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.01, 12), gold);
-  tag.rotation.x = Math.PI / 2;
-  tag.position.set(0, 0.74, 0.62);
-  rig.add(tag);
-
-  const legs = [];
-  for (const [x, z, front] of [[-0.15, 0.36, 1], [0.15, 0.36, 1], [-0.15, -0.36, 0], [0.15, -0.36, 0]]) {
-    const hip = new THREE.Group();
-    hip.position.set(x, 0.6, z);
-    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.2, 4, 8), fur);
-    upper.position.y = -0.14;
-    hip.add(upper);
-    const knee = new THREE.Group();
-    knee.position.y = -0.3;
-    const lower = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.2, 4, 8), front ? cream : fur);
-    lower.position.y = -0.12;
-    knee.add(lower);
-    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), cream);
-    paw.position.set(0, -0.27, 0.035);
-    paw.scale.set(1, 0.6, 1.35);
-    knee.add(paw);
-    hip.add(knee);
-    rig.add(hip);
-    legs.push({ hip, knee, x, front });
-  }
-
-  const tail = new THREE.Group();
-  tail.position.set(0, 0.82, -0.56);
-  const tailMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.42, 4, 8), fur);
-  tailMesh.position.y = 0.25;
-  tail.add(tailMesh);
-  const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), cream);
-  tailTip.position.y = 0.5;
-  tail.add(tailTip);
-  tail.rotation.x = -0.7;
-  rig.add(tail);
-
-  dog.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  dog.userData = { rig, head, jaw, ears, legs, tail, tongue, mouth, tailSpring: { a: 0, v: 0 } };
-  return dog;
-}
-
-/* ======================================================================
-   Owner
-   ====================================================================== */
-function makeOwner() {
-  const man = new THREE.Group();
-  const std = (color, roughness = 0.8) => new THREE.MeshStandardMaterial({ color, roughness });
-  const skin = std(0x8d5a3b), shirt = std(0xf2c230), jeans = std(0x2d4d7a, 0.9), cap = std(0x1f3a22), shoe = std(0xf5f5f5, 0.6);
-
-  const body = new THREE.Group();
-  man.add(body);
-  for (const s of [-1, 1]) {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.7, 4, 10), jeans);
-    leg.position.set(0.14 * s, 0.5, 0);
-    body.add(leg);
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.3), shoe);
-    foot.position.set(0.14 * s, 0.05, 0.05);
-    body.add(foot);
-  }
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.25, 0.35, 6, 12), shirt);
-  torso.scale.set(1.1, 1, 0.65);
-  torso.position.y = 1.32;
-  body.add(torso);
-  const headG = new THREE.Group();
-  headG.position.y = 1.85;
-  body.add(headG);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.19, 20, 16), skin);
-  headG.add(head);
-  const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), cap);
-  capTop.position.y = 0.03;
-  headG.add(capTop);
-  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.025, 0.2), cap);
-  visor.position.set(0, 0.05, 0.2);
-  headG.add(visor);
-  for (const s of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 6), std(0x151515, 0.3));
-    eye.position.set(0.07 * s, 0, 0.17);
-    headG.add(eye);
-  }
-
-  const arms = {};
-  for (const [name, s] of [['right', -1], ['left', 1]]) {
-    const yaw = new THREE.Group();
-    yaw.position.set(0.33 * s, 1.55, 0);
-    const pitch = new THREE.Group();
-    yaw.add(pitch);
-    const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 0.18, 4, 8), shirt);
-    sleeve.position.y = -0.12;
-    pitch.add(sleeve);
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.4, 4, 8), skin);
-    arm.position.y = -0.38;
-    pitch.add(arm);
-    const handMesh = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), skin);
-    handMesh.position.y = -0.64;
-    pitch.add(handMesh);
-    const hand = new THREE.Object3D();
-    hand.position.y = -0.68;
-    pitch.add(hand);
-    body.add(yaw);
-    arms[name] = { yaw, pitch, hand };
-  }
-  man.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-  man.userData = { arms, body, headG };
-  return man;
-}
-
-/* ======================================================================
-   Frisbee
-   ====================================================================== */
-function makeDisc() {
-  const pts = [
-    new THREE.Vector2(0.0, 0.03), new THREE.Vector2(0.14, 0.036), new THREE.Vector2(0.23, 0.03),
-    new THREE.Vector2(0.27, 0.016), new THREE.Vector2(0.285, -0.004), new THREE.Vector2(0.28, -0.03),
-    new THREE.Vector2(0.262, -0.036), new THREE.Vector2(0.255, -0.02),
-  ];
-  const disc = new THREE.Group();
-  const spinner = new THREE.Group();
-  disc.add(spinner);
-  const mesh = new THREE.Mesh(
-    new THREE.LatheGeometry(pts, 40),
-    new THREE.MeshPhysicalMaterial({ color: 0xff5a1f, roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.3, side: THREE.DoubleSide })
-  );
-  mesh.castShadow = true;
-  spinner.add(mesh);
-  // Printed rings on top show the spin
-  const decal = new THREE.Mesh(
-    new THREE.RingGeometry(0.1, 0.13, 28, 1, 0, Math.PI * 1.4),
-    new THREE.MeshBasicMaterial({ color: 0xfff3e0, side: THREE.DoubleSide })
-  );
-  decal.rotation.x = -Math.PI / 2;
-  decal.position.y = 0.037;
-  spinner.add(decal);
-  const dot = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), new THREE.MeshBasicMaterial({ color: 0xfff3e0 }));
-  dot.rotation.x = -Math.PI / 2;
-  dot.position.set(0.19, 0.035, 0);
-  spinner.add(dot);
-  disc.userData.spinner = spinner;
-  return disc;
-}
-
-const dog = makeDog();
-scene.add(dog);
-const owner = makeOwner();
-scene.add(owner);
-const disc = makeDisc();
-scene.add(disc);
-
-const shadowBlob = new THREE.Mesh(
-  new THREE.CircleGeometry(0.34, 24),
-  new THREE.MeshBasicMaterial({ color: 0x0d1f0d, transparent: true, opacity: 0.35, depthWrite: false })
-);
-shadowBlob.rotation.x = -Math.PI / 2;
-shadowBlob.position.y = 0.04;
-scene.add(shadowBlob);
-
-const landRing = new THREE.Mesh(
-  new THREE.RingGeometry(0.9, 1.15, 40),
-  new THREE.MeshBasicMaterial({ color: 0xfff3e0, transparent: true, opacity: 0.8, depthWrite: false })
-);
-landRing.rotation.x = -Math.PI / 2;
-landRing.position.y = 0.05;
-landRing.visible = false;
-scene.add(landRing);
-
-const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 4), new THREE.MeshBasicMaterial({ color: 0xff5a1f }));
-arrow.rotation.x = Math.PI;
-arrow.visible = false;
-scene.add(arrow);
-
-/* ======================================================================
-   Particles (dust, grass, confetti)
-   ====================================================================== */
-const Particles = (() => {
-  const MAX = 700;
-  const pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 3), size = new Float32Array(MAX), alpha = new Float32Array(MAX);
-  const vel = new Float32Array(MAX * 3), life = new Float32Array(MAX), maxLife = new Float32Array(MAX);
-  const grav = new Float32Array(MAX), drag = new Float32Array(MAX), s0 = new Float32Array(MAX), s1 = new Float32Array(MAX), a0 = new Float32Array(MAX);
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute('aColor', new THREE.BufferAttribute(col, 3).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute('aAlpha', new THREE.BufferAttribute(alpha, 1).setUsage(THREE.DynamicDrawUsage));
-  const mat = new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false,
-    uniforms: { uScale: { value: 400 } },
-    vertexShader: `attribute vec3 aColor; attribute float aSize; attribute float aAlpha; uniform float uScale;
-      varying vec3 vColor; varying float vAlpha;
-      void main(){ vColor = aColor; vAlpha = aAlpha;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        gl_PointSize = aSize * uScale / max(-mv.z, 0.1);
-        gl_Position = projectionMatrix * mv; }`,
-    fragmentShader: `varying vec3 vColor; varying float vAlpha;
-      void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
-        gl_FragColor = vec4(vColor, vAlpha * smoothstep(0.5, 0.15, d));
-        #include <colorspace_fragment>
-      }`,
-  });
-  const points = new THREE.Points(geo, mat);
-  points.frustumCulled = false;
-  scene.add(points);
-  let cursor = 0;
-  const c = new THREE.Color();
-  function emit(x, y, z, vx, vy, vz, o) {
-    const i = cursor; cursor = (cursor + 1) % MAX;
-    pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
-    vel[i * 3] = vx; vel[i * 3 + 1] = vy; vel[i * 3 + 2] = vz;
-    c.set(o.color); col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
-    life[i] = maxLife[i] = o.life ?? 0.8;
-    grav[i] = o.grav ?? 0; drag[i] = o.drag ?? 2;
-    s0[i] = o.size ?? 0.3; s1[i] = o.sizeEnd ?? (o.size ?? 0.3) * 2.5;
-    a0[i] = o.alpha ?? 0.5;
-  }
-  function update(dt) {
-    for (let i = 0; i < MAX; i++) {
-      if (life[i] <= 0) { alpha[i] = 0; continue; }
-      life[i] -= dt;
-      const k = Math.exp(-drag[i] * dt);
-      vel[i * 3] *= k; vel[i * 3 + 2] *= k; vel[i * 3 + 1] = vel[i * 3 + 1] * k - grav[i] * dt;
-      pos[i * 3] += vel[i * 3] * dt; pos[i * 3 + 1] += vel[i * 3 + 1] * dt; pos[i * 3 + 2] += vel[i * 3 + 2] * dt;
-      if (pos[i * 3 + 1] < 0.02) { pos[i * 3 + 1] = 0.02; vel[i * 3 + 1] *= -0.3; }
-      const t = 1 - life[i] / maxLife[i];
-      size[i] = lerp(s0[i], s1[i], t);
-      alpha[i] = a0[i] * (1 - t) * Math.min(1, t * 8);
-    }
-    geo.attributes.position.needsUpdate = true;
-    geo.attributes.aColor.needsUpdate = true;
-    geo.attributes.aSize.needsUpdate = true;
-    geo.attributes.aAlpha.needsUpdate = true;
-  }
-  function setScale(s) { mat.uniforms.uScale.value = s; }
-  return { emit, update, setScale };
-})();
-
-function dustPuff(x, z, n, spread, speed, color = 0xd8cfa2) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, s = speed * rand(0.4, 1);
-    Particles.emit(x + rand(-spread, spread), 0.08, z + rand(-spread, spread), Math.cos(a) * s, rand(0.4, 1.4), Math.sin(a) * s,
-      { color, life: rand(0.5, 0.9), size: rand(0.18, 0.3), sizeEnd: rand(0.6, 0.9), alpha: 0.45, drag: 3, grav: 0.3 });
-  }
-}
-function grassBits(x, z, n, speed) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, s = speed * rand(0.3, 1);
-    Particles.emit(x, 0.1, z, Math.cos(a) * s, rand(1.5, 3.5), Math.sin(a) * s,
-      { color: Math.random() < 0.5 ? 0x5c9a38 : 0x86b94f, life: rand(0.6, 1.0), size: 0.07, sizeEnd: 0.06, alpha: 1, drag: 1.2, grav: 9 });
-  }
-}
-function confetti(p, n) {
-  const colors = [0xff5a1f, 0xffd23f, 0xfff3e0, 0x3fa0d8];
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2, e = rand(-0.2, 1.2), s = rand(2, 5);
-    Particles.emit(p.x, p.y, p.z, Math.cos(a) * Math.cos(e) * s, Math.sin(e) * s + 1, Math.sin(a) * Math.cos(e) * s,
-      { color: colors[i % colors.length], life: rand(0.7, 1.2), size: 0.1, sizeEnd: 0.08, alpha: 1, drag: 1.5, grav: 6 });
-  }
-}
-
-/* ======================================================================
-   Frisbee trail (ribbon)
-   ====================================================================== */
-const Trail = (() => {
-  const N = 40;
-  const pts = [];
-  const pos = new Float32Array(N * 2 * 3), colr = new Float32Array(N * 2 * 4);
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage));
-  geo.setAttribute('color', new THREE.BufferAttribute(colr, 4).setUsage(THREE.DynamicDrawUsage));
-  const idx = [];
-  for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-  geo.setIndex(idx);
-  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
-  mesh.frustumCulled = false;
-  scene.add(mesh);
-  const side = new THREE.Vector3(), dir = new THREE.Vector3();
-  function push(p) { pts.unshift(p.clone()); if (pts.length > N) pts.pop(); }
-  function fade() { if (pts.length) pts.pop(); if (pts.length) pts.pop(); }
-  function update() {
-    for (let i = 0; i < N; i++) {
-      const p = pts[Math.min(i, pts.length - 1)];
-      const q = pts[Math.min(i + 1, pts.length - 1)];
-      if (!p) { colr.fill(0); break; }
-      dir.subVectors(p, q);
-      side.set(-dir.z, 0, dir.x);
-      if (side.lengthSq() < 1e-8) side.set(1, 0, 0);
-      side.normalize();
-      const t = i / (N - 1);
-      const w = 0.2 * (1 - t);
-      pos.set([p.x + side.x * w, p.y + 0.01, p.z + side.z * w, p.x - side.x * w, p.y - 0.01, p.z - side.z * w], i * 6);
-      const a = i < pts.length ? 0.55 * (1 - t) : 0;
-      colr.set([1, 0.95, 0.85, a, 1, 0.95, 0.85, a], i * 8);
-    }
-    geo.attributes.position.needsUpdate = true;
-    geo.attributes.color.needsUpdate = true;
-  }
-  return { push, fade, update, clear: () => { pts.length = 0; } };
-})();
-
-/* ======================================================================
-   Frisbee aerodynamics
-   Lift and drag from the angle of attack between the airflow and the
-   disc plane (Morrison / Hummel coefficients), plus the gyroscopic roll
-   that makes a spinning disc turn at high speed and fade at low speed.
-   ====================================================================== */
-const AERO = { rho: 1.23, area: 0.0568, mass: 0.175, CL0: 0.15, CLa: 1.4, CD0: 0.08, CDa: 2.72, a0: -0.07, CM0: -0.01, CMa: 0.1, roll: 4 };
-const _vr = new THREE.Vector3(), _vh = new THREE.Vector3(), _lift = new THREE.Vector3(), _fh = new THREE.Vector3();
-function aeroStep(p, v, n, wind, dt) {
-  _vr.subVectors(v, wind);
-  const s = _vr.length();
-  if (s > 0.2) {
-    _vh.copy(_vr).divideScalar(s);
-    const vn = _vh.dot(n);
-    const alpha = Math.asin(clamp(-vn, -1, 1));
-    const q = 0.5 * AERO.rho * s * s * AERO.area;
-    const CL = AERO.CL0 + AERO.CLa * alpha;
-    const CD = AERO.CD0 + AERO.CDa * (alpha - AERO.a0) ** 2;
-    _lift.copy(n).addScaledVector(_vh, -vn);
-    if (_lift.lengthSq() > 1e-8) _lift.normalize();
-    v.addScaledVector(_lift, (q * CL / AERO.mass) * dt);
-    v.addScaledVector(_vh, (-q * CD / AERO.mass) * dt);
-    // Gyroscopic precession: pitching moment becomes a roll about the direction of travel
-    const CM = AERO.CM0 + AERO.CMa * alpha;
-    _fh.set(_vh.x, 0, _vh.z);
-    if (_fh.lengthSq() > 1e-6) {
-      _fh.normalize();
-      n.applyAxisAngle(_fh, -AERO.roll * CM * q * dt).normalize();
-    }
-  }
-  v.y -= 9.81 * dt;
-  p.addScaledVector(v, dt);
-}
-function predictLanding(p0, v0, n0, wind) {
-  const p = p0.clone(), v = v0.clone(), n = n0.clone();
-  let t = 0;
-  while (p.y > 0.04 && t < 8) { aeroStep(p, v, n, wind, 1 / 60); t += 1 / 60; }
-  return { p, t };
-}
-
-/* ======================================================================
-   Audio
-   ====================================================================== */
-let actx = null, master = null;
-function initAudio() {
-  if (!actx) {
-    try {
-      actx = new (window.AudioContext || window.webkitAudioContext)();
-      master = actx.createGain(); master.gain.value = 0.8; master.connect(actx.destination);
-      startAmbience();
-    } catch (e) { actx = null; }
-  }
-  if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
-}
-function tone(freq, dur, type = 'sine', vol = 0.15, slideTo = null, delay = 0) {
-  if (!actx) return;
-  const t = actx.currentTime + delay;
-  const o = actx.createOscillator(), g = actx.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, t);
-  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(master);
-  o.start(t); o.stop(t + dur + 0.02);
-}
-let noiseBuf = null;
-function noise(dur, vol, freq, q = 1, delay = 0) {
-  if (!actx) return;
-  if (!noiseBuf) {
-    noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
-  const t = actx.currentTime + delay;
-  const src = actx.createBufferSource(); src.buffer = noiseBuf;
-  const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
-  const g = actx.createGain();
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(f).connect(g).connect(master);
-  src.start(t, Math.random() * 0.5); src.stop(t + dur);
-}
-let windGain = null;
-function startAmbience() {
-  noise(0.01, 0.0001, 500);
-  const src = actx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
-  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 380;
-  windGain = actx.createGain(); windGain.gain.value = 0.02;
-  src.connect(f).connect(windGain).connect(master);
-  src.start();
-  const chirp = () => {
-    if (!document.hidden && G.running && !G.paused) {
-      const base = rand(2400, 3600);
-      for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) tone(base, 0.07, 'sine', 0.025, base * 1.3, i * 0.11);
-    }
-    setTimeout(chirp, rand(3000, 9000));
-  };
-  setTimeout(chirp, 2500);
-}
-const sfx = {
-  bark() { tone(520, 0.09, 'square', 0.06, 260); tone(480, 0.11, 'square', 0.06, 220, 0.12); noise(0.08, 0.05, 900, 2); },
-  whoosh() { noise(0.45, 0.12, 1400, 0.8); },
-  catch() { tone(660, 0.1, 'triangle', 0.15); tone(990, 0.18, 'triangle', 0.15, null, 0.09); },
-  big() { [660, 830, 990, 1320].forEach((f, i) => tone(f, 0.16, 'triangle', 0.13, null, i * 0.07)); },
-  miss() { tone(300, 0.35, 'sawtooth', 0.05, 120); noise(0.2, 0.08, 400); },
-  jump() { tone(300, 0.12, 'sine', 0.06, 600); },
-  land(k) { noise(0.12, 0.06 * k, 300, 0.7); },
-  thud() { noise(0.15, 0.1, 250, 0.8); },
-  deliver() { tone(520, 0.1, 'sine', 0.12); tone(780, 0.12, 'sine', 0.12, null, 0.08); },
-  step() { noise(0.05, 0.02, 500, 1); },
-};
-
-/* ======================================================================
-   Input: keyboard, touch, gamepad (8BitDo and other standard pads)
-   ====================================================================== */
-const keys = new Set();
-const input = { x: 0, z: 0, sprint: false, jumpHeld: false, jumpPressed: false, camX: 0, pausePressed: false, confirmPressed: false };
-window.addEventListener('keydown', (e) => {
-  if (e.repeat) { if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); return; }
-  keys.add(e.code);
-  if (e.code === 'Space') { input.jumpPressed = true; e.preventDefault(); }
-  if (e.code === 'Escape' || e.code === 'KeyP') input.pausePressed = true;
-  if (e.code === 'Enter') input.confirmPressed = true;
-  if (e.code.startsWith('Arrow')) e.preventDefault();
-});
-window.addEventListener('keyup', (e) => keys.delete(e.code));
-window.addEventListener('blur', () => { keys.clear(); if (G.running && !G.paused) setPaused(true); });
-
-const stick = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
-const stickBase = $('stickBase'), stickKnob = $('stickKnob');
-window.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse' || stick.id !== null) return;
-  if (e.target.closest('.btn-round, .screen, button')) return;
-  if (e.clientX > window.innerWidth * 0.6) return;
-  stick.id = e.pointerId; stick.ox = e.clientX; stick.oy = e.clientY; stick.x = stick.y = 0;
-  stickBase.style.left = e.clientX + 'px';
-  stickBase.style.top = e.clientY + 'px';
-  stickBase.classList.add('on');
-  stickKnob.style.transform = '';
-  setPadActive(false);
-});
-window.addEventListener('pointermove', (e) => {
-  if (e.pointerId !== stick.id) return;
-  let dx = e.clientX - stick.ox, dy = e.clientY - stick.oy;
-  const d = Math.hypot(dx, dy), max = 50;
-  if (d > max) { dx *= max / d; dy *= max / d; }
-  stick.x = dx / max; stick.y = dy / max;
-  stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-});
-const endStick = (e) => {
-  if (e.pointerId !== stick.id) return;
-  stick.id = null; stick.x = stick.y = 0;
-  stickBase.classList.remove('on');
-};
-window.addEventListener('pointerup', endStick);
-window.addEventListener('pointercancel', endStick);
-
-function holdButton(el, onDown, onUp) {
-  el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.classList.add('down'); onDown(); });
-  const up = () => { el.classList.remove('down'); onUp && onUp(); };
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', up);
-  el.addEventListener('pointerleave', up);
-}
-let touchSprint = false, touchJump = false;
-holdButton($('btnJump'), () => { input.jumpPressed = true; touchJump = true; }, () => { touchJump = false; });
-holdButton($('btnSprint'), () => { touchSprint = true; }, () => { touchSprint = false; });
-
-// ---- Gamepad ----
-const pad = { index: null, prev: [], active: false, name: '' };
-function setPadActive(on) {
-  if (pad.active === on) return;
-  pad.active = on;
-  document.body.classList.toggle('pad-active', on);
-  $('playHint').hidden = !on;
-}
-function padLabel(id) {
-  const clean = id.replace(/\(.*?\)/g, '').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
-  return /8bitdo/i.test(id) ? '8BitDo' : (clean.slice(0, 22) || 'Manette');
-}
-window.addEventListener('gamepadconnected', (e) => {
-  pad.index = e.gamepad.index;
-  pad.name = padLabel(e.gamepad.id);
-  $('padChip').hidden = false;
-  $('padChip').querySelector('span').textContent = pad.name;
-  setPadActive(true);
-  toast(`Manette connectée : ${pad.name}`);
-});
-window.addEventListener('gamepaddisconnected', (e) => {
-  if (e.gamepad.index !== pad.index) return;
-  pad.index = null;
-  $('padChip').hidden = true;
-  setPadActive(false);
-  toast('Manette déconnectée');
-  if (G.running && !G.paused) setPaused(true);
-});
-function getPad() {
-  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  if (pad.index !== null && pads[pad.index]) return pads[pad.index];
-  for (const p of pads) {
-    if (p && p.connected) {                      // some browsers only expose pads after a button press
-      pad.index = p.index; pad.name = padLabel(p.id);
-      $('padChip').hidden = false; $('padChip').querySelector('span').textContent = pad.name;
-      return p;
-    }
-  }
-  return null;
-}
-function deadzone(x, y, dz = 0.18) {
-  const m = Math.hypot(x, y);
-  if (m < dz) return [0, 0];
-  const k = Math.min(1, (m - dz) / (1 - dz)) / m;
-  return [x * k, y * k];
-}
-function rumble(strong, weak, ms) {
-  const p = getPad();
-  const act = p && p.vibrationActuator;
-  if (act && act.playEffect) act.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak }).catch(() => {});
-}
-
-function readInput() {
-  let x = 0, z = 0, sprint = false, jumpHeld = false, camX = 0;
-  // Physical key codes: WASD on QWERTY is ZQSD on AZERTY
-  if (keys.has('KeyW') || keys.has('ArrowUp')) z += 1;
-  if (keys.has('KeyS') || keys.has('ArrowDown')) z -= 1;
-  if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
-  if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1;
-  if (keys.size) setPadActive(false);
-  if (stick.id !== null) { x += stick.x; z -= stick.y; }
-  sprint = keys.has('ShiftLeft') || keys.has('ShiftRight') || touchSprint;
-  jumpHeld = keys.has('Space') || touchJump;
-
-  const p = getPad();
-  if (p) {
-    const b = (i) => { const btn = p.buttons[i]; return !!btn && (btn.pressed || btn.value > 0.35); };
-    const edge = (i) => b(i) && !pad.prev[i];
-    let [lx, ly] = deadzone(p.axes[0] || 0, p.axes[1] || 0);
-    let [rx] = deadzone(p.axes[2] || 0, p.axes[3] || 0, 0.2);
-    // D-pad: standard buttons 12-15, or a hat on axes 6/7 for non-standard mappings
-    if (b(12)) ly = -1; if (b(13)) ly = 1; if (b(14)) lx = -1; if (b(15)) lx = 1;
-    if (p.mapping !== 'standard' && p.axes.length >= 8) {
-      if (Math.abs(p.axes[6]) > 0.5) lx = Math.sign(p.axes[6]);
-      if (Math.abs(p.axes[7]) > 0.5) ly = Math.sign(p.axes[7]);
-    }
-    x += lx; z -= ly; camX += rx;
-    const jumpBtn = b(0) || b(1);
-    // Every face/shoulder button besides jump sprints, so any 8BitDo mode (X-input, Switch, D-input) works.
-    sprint = sprint || b(2) || b(3) || b(4) || b(5) || b(6) || b(7);
-    jumpHeld = jumpHeld || jumpBtn;
-    if (edge(0) || edge(1)) { input.jumpPressed = true; input.confirmPressed = true; }
-    if (edge(9)) { input.pausePressed = true; input.confirmPressed = true; }
-    const anyUse = Math.abs(lx) + Math.abs(ly) + Math.abs(rx) > 0 || p.buttons.some((btn) => btn.pressed);
-    if (anyUse) setPadActive(true);
-    pad.prev = p.buttons.map((btn) => btn.pressed || btn.value > 0.35);
-  }
-  const len = Math.hypot(x, z);
-  if (len > 1) { x /= len; z /= len; }
-  input.x = x; input.z = z; input.sprint = sprint; input.jumpHeld = jumpHeld; input.camX = camX;
-}
-
-/* ======================================================================
-   HUD
-   ====================================================================== */
-const ui = {
-  score: $('score'), status: $('status'), popup: $('popup'), combo: $('combo'), toast: $('toast'),
-  lives: [...document.querySelectorAll('.life')], stamina: $('stamina'), staminaFill: $('staminaFill'),
-  windArrow: $('windArrow'), windText: $('windText'),
-};
-function setStatus(t) { if (ui.status.textContent !== t) ui.status.textContent = t; }
-function popup(main, sub = '') {
-  ui.popup.textContent = main;
-  if (sub) { const s = document.createElement('span'); s.textContent = sub; ui.popup.append(s); }
-  ui.popup.classList.remove('show');
-  void ui.popup.offsetWidth;
-  ui.popup.classList.add('show');
-}
-let toastTimer = 0;
-function toast(t) {
-  ui.toast.textContent = t;
-  ui.toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => ui.toast.classList.remove('show'), 2200);
-}
-function readBest() { try { return Number(localStorage.getItem('freesbee-best')) || 0; } catch (e) { return 0; } }
-function writeBest(v) { try { localStorage.setItem('freesbee-best', String(v)); } catch (e) { /* storage unavailable */ } }
-const fmt = (n) => n.toLocaleString('fr-FR');
-
-/* ======================================================================
-   Game state
-   ====================================================================== */
-const G = {
-  running: false, paused: false,
-  phase: 'intro',   // intro | windup | flying | ground | carrying | over
-  timer: 0,
-  score: 0, lives: 3, combo: 0, throws: 0, catches: 0, bestCombo: 0,
-  // dog
-  dogPos: new THREE.Vector3(0, 0, 3), dogSpeed: 0, dogHeading: Math.PI, dogVy: 0, dogVel: new THREE.Vector3(),
-  onGround: true, jumpBuffer: 0, jumpHold: 0, stamina: 1, tired: false,
-  turnRate: 0, lean: 0, squash: 0, legPhase: 0, stepTimer: 0, skid: 0, prevVy: 0,
-  // disc
-  discPos: new THREE.Vector3(), discPrev: new THREE.Vector3(), discVel: new THREE.Vector3(), discN: new THREE.Vector3(0, 1, 0),
-  discSpin: 0, discSpinAngle: 0, wind: new THREE.Vector3(),
-  plan: null,
-  // camera
-  camYaw: 0, camManual: 0, camIdle: 0, camFocus: new THREE.Vector3(0, 1, 0), shake: 0, fovKick: 0,
-};
-
-function resetGame() {
-  Object.assign(G, {
-    score: 0, lives: 3, combo: 0, throws: 0, catches: 0, bestCombo: 0,
-    dogSpeed: 0, dogHeading: Math.PI, dogVy: 0, onGround: true, stamina: 1, tired: false,
-    camYaw: 0, camManual: 0, squash: 0, lean: 0,
-  });
-  G.dogPos.set(0, 0, 3);
-  G.wind.set(0, 0, 0);
-  owner.position.set(0, 0, 0);
-  owner.rotation.y = 0;
-  ui.lives.forEach((l) => l.classList.remove('lost'));
-  ui.score.textContent = '0';
-  ui.combo.hidden = true;
-  Trail.clear();
-  startWindup(1.2);
-}
-
-const THROWS = {
-  normal: { label: null },
-  floater: { label: 'Lancer plané !' },
-  laser: { label: 'Lancer tendu !' },
-  hyzer: { label: 'Lancer courbé !' },
-};
-
-function planThrow() {
-  const level = Math.min(G.throws, 16) / 16;
-  let type = 'normal';
-  const r = Math.random();
-  if (G.throws >= 2) {
-    if (r < 0.2) type = 'floater';
-    else if (r < 0.2 + level * 0.25) type = 'laser';
-    else if (r < 0.45 + level * 0.2) type = 'hyzer';
-  }
-  let speed = rand(12, 14) + level * rand(1.5, 5);
-  let launch = rand(13, 16), pitch = rand(11, 14), bank = rand(-4, 4);
-  if (type === 'floater') { speed = rand(12, 14); launch = rand(19, 23); pitch = rand(15, 18); }
-  if (type === 'laser') { speed = rand(18, 21); launch = rand(9, 11); pitch = rand(8, 10); }
-  if (type === 'hyzer') { bank = (Math.random() < 0.5 ? -1 : 1) * rand(10, 18); speed += 1; }
-  const toDog = Math.atan2(G.dogPos.x - owner.position.x, G.dogPos.z - owner.position.z);
-  const spread = 0.7 + level * 1.0;
-  const yaw = toDog + rand(-spread, spread);
-  // Wind picks up as the game goes on
-  const windSpeed = G.throws < 2 ? 0 : rand(0, 1.2 + level * 3);
-  const windYaw = rand(0, Math.PI * 2);
-  const wind = new THREE.Vector3(Math.sin(windYaw) * windSpeed, 0, Math.cos(windYaw) * windSpeed);
-  const hand = new THREE.Vector3(owner.position.x, 1.45, owner.position.z);
-
-  let plan;
-  for (let i = 0; i < 14; i++) {
-    plan = buildThrow(hand, yaw, speed, launch, pitch, bank);
-    const land = predictLanding(hand, plan.v, plan.n, wind);
-    plan.land = land.p; plan.flight = land.t;
-    if (Math.hypot(land.p.x, land.p.z) < FIELD_R - 4) break;
-    speed *= 0.92;
-  }
-  plan.type = type; plan.yaw = yaw; plan.wind = wind;
-  return plan;
-}
-function buildThrow(hand, yaw, speed, launchDeg, pitchDeg, bankDeg) {
-  const f = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-  const right = new THREE.Vector3(-f.z, 0, f.x);           // owner's right-hand side
-  const la = THREE.MathUtils.degToRad(launchDeg);
-  const v = f.clone().multiplyScalar(speed * Math.cos(la)); v.y = speed * Math.sin(la);
-  const n = UP.clone().applyAxisAngle(right, THREE.MathUtils.degToRad(pitchDeg));   // nose up
-  n.applyAxisAngle(f, THREE.MathUtils.degToRad(bankDeg));
-  return { v, n };
-}
-
-function startWindup(delay) {
-  G.phase = 'windup';
-  G.timer = -delay;
-  G.plan = planThrow();
-  G.wind.copy(G.plan.wind);
-  setStatus('Le maître va lancer… regarde où il se tourne !');
-}
-
-function releaseDisc() {
-  G.phase = 'flying';
-  G.timer = 0;
-  G.throws++;
-  owner.userData.arms.right.hand.getWorldPosition(G.discPos);
-  G.discPos.y = Math.max(G.discPos.y, 1.2);
-  G.discPrev.copy(G.discPos);
-  G.discVel.copy(G.plan.v);
-  G.discN.copy(G.plan.n);
-  G.discSpin = 60;
-  Trail.clear();
-  if (G.throws <= 3) {
-    const land = predictLanding(G.discPos, G.discVel, G.discN, G.wind);
-    landRing.position.set(land.p.x, 0.05, land.p.z);
-    landRing.visible = true;
-  }
-  const label = THROWS[G.plan.type].label;
-  if (label) popup(label);
-  sfx.whoosh();
-  setStatus('Attrape-le !');
-}
-
-function addScore(n) { G.score += n; ui.score.textContent = fmt(G.score); }
-
-function catchDisc() {
-  const dist = Math.hypot(G.discPos.x - owner.position.x, G.discPos.z - owner.position.z);
-  const height = G.dogPos.y;
-  G.combo++; G.catches++;
-  G.bestCombo = Math.max(G.bestCombo, G.combo);
-  let label = 'Attrapé !', mult = 1;
-  if (height > 0.9) { label = 'Acrobatie !'; mult = 3; }
-  else if (height > 0.25) { label = 'En plein saut !'; mult = 2; }
-  else if (G.discPos.y < 0.45) { label = 'Juste à temps !'; mult = 1.5; }
-  const comboMult = 1 + 0.5 * (G.combo - 1);
-  const pts = Math.round((100 + dist * 4) * mult * comboMult / 10) * 10;
-  addScore(pts);
-  popup(label, `+${pts}  ·  ${dist.toFixed(0)} m`);
-  if (mult > 1.5) { sfx.big(); G.shake = 0.35; rumble(0.8, 0.5, 220); } else { sfx.catch(); rumble(0.4, 0.3, 120); }
-  sfx.bark();
-  confetti(G.discPos, mult > 1.5 ? 60 : 30);
-  if (G.combo > 1) { ui.combo.hidden = false; ui.combo.textContent = `Combo ×${String(comboMult).replace('.', ',')}`; }
-  G.phase = 'carrying';
-  landRing.visible = false;
-  G.fovKick = -4;
-  setStatus('Bravo ! Rapporte le frisbee au maître');
-}
-
-function discLanded() {
-  G.phase = 'ground';
-  G.timer = 0;
-  G.combo = 0;
-  ui.combo.hidden = true;
-  landRing.visible = false;
-  G.lives--;
-  ui.lives.forEach((l, i) => l.classList.toggle('lost', i >= G.lives));
-  sfx.miss(); sfx.thud();
-  grassBits(G.discPos.x, G.discPos.z, 18, 2.5);
-  dustPuff(G.discPos.x, G.discPos.z, 6, 0.2, 1.2);
-  rumble(0.2, 0.6, 180);
-  if (G.lives <= 0) {
-    popup('Raté !');
-    setStatus('Plus de frisbee…');
-    setTimeout(gameOver, 1500);
-  } else {
-    popup('Raté !', G.lives === 1 ? 'Dernière chance' : `Encore ${G.lives} essais`);
-    setStatus('Va chercher le frisbee et rapporte-le');
-  }
-}
-
-function gameOver() {
-  G.phase = 'over';
-  G.running = false;
-  const best = readBest();
-  const isRecord = G.score > best;
-  if (isRecord) writeBest(G.score);
-  $('finalScore').textContent = fmt(G.score);
-  const combo = Math.max(1, 1 + 0.5 * (G.bestCombo - 1));
-  $('finalDetail').textContent =
-    `${G.catches} frisbee${G.catches > 1 ? 's' : ''} attrapé${G.catches > 1 ? 's' : ''} · meilleur combo ×${String(combo).replace('.', ',')} · ` +
-    (isRecord ? 'nouveau record !' : `record : ${fmt(best)}`);
-  $('overScreen').hidden = false;
-  $('againBtn').focus();
-}
-
-function start() {
-  initAudio();
-  $('startScreen').hidden = true;
-  $('overScreen').hidden = true;
-  $('pauseScreen').hidden = true;
-  G.paused = false;
-  input.jumpPressed = false;
-  resetGame();
-  G.running = true;
-  sfx.bark();
-}
-function setPaused(on) {
-  if (!G.running) return;
-  G.paused = on;
-  $('pauseScreen').hidden = !on;
-  if (on) $('resumeBtn').focus();
-  else initAudio();
-}
-$('playBtn').addEventListener('click', start);
-$('againBtn').addEventListener('click', start);
-$('resumeBtn').addEventListener('click', () => setPaused(false));
-$('pauseBtn').addEventListener('click', () => setPaused(!G.paused));
-
-/* ======================================================================
-   Physics step (fixed 120 Hz)
-   ====================================================================== */
-const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
-const mouthPos = new THREE.Vector3();
-
-function stepDog(h) {
-  // Camera-relative input direction
-  const yaw = G.camYaw + G.camManual;
-  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-  const mx = fx * input.z + -fz * input.x;
-  const mz = fz * input.z + fx * input.x;
-  const mag = Math.min(1, Math.hypot(mx, mz));
-  const canPlay = G.running && !G.paused;
-
-  const wantsSprint = input.sprint && mag > 0.2 && !G.tired && canPlay;
-  G.stamina = clamp(G.stamina + (wantsSprint ? -0.42 : 0.24) * h, 0, 1);
-  if (G.stamina <= 0) G.tired = true;
-  if (G.tired && G.stamina > 0.35) G.tired = false;
-  const target = mag * (wantsSprint ? SPRINT_SPEED : RUN_SPEED);
-
-  const prevHeading = G.dogHeading;
-  G.skid = 0;
-  if (G.onGround) {
-    if (mag > 0.1) {
-      const desired = Math.atan2(mx, mz);
-      const diff = wrapAngle(desired - G.dogHeading);
-      // The faster the dog runs, the wider it has to turn
-      const turnRate = lerp(11, 3.4, clamp(G.dogSpeed / SPRINT_SPEED, 0, 1));
-      if (G.dogSpeed < 2) G.dogHeading += diff * (1 - Math.exp(-14 * h));
-      else G.dogHeading += clamp(diff, -turnRate * h, turnRate * h);
-      const facing = Math.cos(diff);
-      if (Math.abs(diff) > 1.6 && G.dogSpeed > 5) {
-        G.dogSpeed = Math.max(0, G.dogSpeed - 26 * h);  // hard braking to turn around
-        G.skid = 1;
-      } else if (G.dogSpeed < target * Math.max(facing, 0.3)) {
-        G.dogSpeed = Math.min(target, G.dogSpeed + (wantsSprint ? 16 : 20) * h);
-      } else {
-        G.dogSpeed = Math.max(target, G.dogSpeed - 14 * h);
-      }
-    } else {
-      G.dogSpeed = Math.max(0, G.dogSpeed - 22 * h);
-    }
-  } else {
-    // Weak air control: nudge heading a little
-    if (mag > 0.1) G.dogHeading += clamp(wrapAngle(Math.atan2(mx, mz) - G.dogHeading), -1.2 * h, 1.2 * h);
-  }
-  G.turnRate = wrapAngle(G.dogHeading - prevHeading) / h;
-  G.dogVel.set(Math.sin(G.dogHeading) * G.dogSpeed, G.dogVy, Math.cos(G.dogHeading) * G.dogSpeed);
-
-  // Jump with buffer and variable height (hold for higher)
-  if (input.jumpPressed && canPlay) G.jumpBuffer = 0.14;
-  input.jumpPressed = false;
-  G.jumpBuffer -= h;
-  if (G.jumpBuffer > 0 && G.onGround) {
-    G.dogVy = 6.6 + G.dogSpeed * 0.08;
-    G.onGround = false;
-    G.jumpBuffer = 0;
-    G.jumpHold = 0.24;
-    sfx.jump();
-    dustPuff(G.dogPos.x, G.dogPos.z, 4, 0.2, 1);
-  }
-  G.prevVy = G.dogVy;
-  if (!G.onGround) {
-    const floaty = input.jumpHeld && G.jumpHold > 0 && G.dogVy > 0;
-    G.jumpHold -= h;
-    G.dogVy -= DOG_GRAVITY * (floaty ? 0.42 : 1) * h;
-    G.dogPos.y += G.dogVy * h;
-    if (G.dogPos.y <= 0) {
-      const impact = clamp(-G.dogVy / 10, 0, 1);
-      G.dogPos.y = 0; G.dogVy = 0; G.onGround = true;
-      G.squash = impact;
-      G.dogSpeed *= 0.88;
-      dustPuff(G.dogPos.x, G.dogPos.z, 5 + Math.round(impact * 8), 0.25, 1.5);
-      sfx.land(impact);
-      if (impact > 0.6) G.shake = Math.max(G.shake, 0.12);
-    }
-  }
-
-  G.dogPos.x += G.dogVel.x * h;
-  G.dogPos.z += G.dogVel.z * h;
-  const r = Math.hypot(G.dogPos.x, G.dogPos.z);
-  if (r > FIELD_R) { G.dogPos.x *= FIELD_R / r; G.dogPos.z *= FIELD_R / r; G.dogSpeed *= 0.97; }
-  tmp.set(G.dogPos.x - owner.position.x, 0, G.dogPos.z - owner.position.z);
-  if (tmp.length() < 0.8) { tmp.setLength(0.8); G.dogPos.x = owner.position.x + tmp.x; G.dogPos.z = owner.position.z + tmp.z; }
-}
-
-// Closest distance from point c to segment ab
-function segDist(a, b, c) {
-  tmp.subVectors(b, a);
-  const l2 = tmp.lengthSq();
-  const t = l2 > 0 ? clamp(tmp2.subVectors(c, a).dot(tmp) / l2, 0, 1) : 0;
-  return tmp2.copy(a).addScaledVector(tmp, t).distanceTo(c);
-}
-
-function stepDisc(h) {
-  if (G.phase === 'windup') {
-    G.timer += h;
-    if (G.timer > 0.95) releaseDisc();
-    return;
-  }
-  if (G.phase === 'flying') {
-    G.discPrev.copy(G.discPos);
-    aeroStep(G.discPos, G.discVel, G.discN, G.wind, h);
-    G.discSpin *= Math.exp(-0.08 * h);
-    G.timer += h;
-    // Swept catch test against the mouth, forgiving vertically
-    dog.userData.mouth.getWorldPosition(mouthPos);
-    mouthPos.addScaledVector(G.dogVel, h);
-    tmp.copy(G.discPrev); tmp.y = mouthPos.y + (tmp.y - mouthPos.y) * 0.75;
-    const a = tmp.clone();
-    tmp.copy(G.discPos); tmp.y = mouthPos.y + (tmp.y - mouthPos.y) * 0.75;
-    const d = segDist(a, tmp.clone(), mouthPos);
-    if (G.timer > 0.2 && d < 0.5) { catchDisc(); return; }
-    if (G.discPos.y <= 0.04) { groundHit(); discLanded(); }
-    return;
-  }
-  if (G.phase === 'ground' || G.phase === 'over') {
-    // Bounce, slide, then settle flat
-    G.discVel.y -= 9.81 * h;
-    G.discPos.addScaledVector(G.discVel, h);
-    if (G.discPos.y <= 0.04) groundHit();
-    const sh = Math.hypot(G.discVel.x, G.discVel.z);
-    if (G.discPos.y <= 0.05 && sh > 0) {
-      const nsh = Math.max(0, sh - 5.5 * h);
-      G.discVel.x *= nsh / sh; G.discVel.z *= nsh / sh;
-    }
-    G.discN.lerp(UP, 1 - Math.exp(-4 * h)).normalize();
-    G.discSpin *= Math.exp(-2.5 * h);
-    G.timer += h;
-    if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4 && G.dogPos.y < 0.4 &&
-        Math.hypot(G.discPos.x - G.dogPos.x, G.discPos.z - G.dogPos.z) < 1.1) {
-      G.phase = 'carrying';
-      setStatus('Rapporte le frisbee au maître');
-    }
-    return;
-  }
-  if (G.phase === 'carrying') {
-    const d = Math.hypot(G.dogPos.x - owner.position.x, G.dogPos.z - owner.position.z);
-    if (d < 2.2) {
-      if (G.combo > 0) { addScore(50); popup('Bon chien !', '+50'); }
-      sfx.deliver();
-      rumble(0.2, 0.2, 80);
-      startWindup(0.9);
-    }
-  }
-}
-function groundHit() {
-  G.discPos.y = 0.04;
-  if (G.discVel.y < -1.2) {
-    G.discVel.y = -G.discVel.y * 0.25;
-    G.discVel.x *= 0.7; G.discVel.z *= 0.7;
-  } else {
-    G.discVel.y = 0;
-  }
-}
-
-function physicsStep(h) {
-  stepDog(h);
-  if (G.running || G.phase === 'over') stepDisc(h);
-}
-
-/* ======================================================================
-   Animation (per frame)
-   ====================================================================== */
-function spring(s, target, k, c, dt) {
-  s.v += (k * (target - s.a) - c * s.v) * dt;
-  s.a += s.v * dt;
-}
-
-function animateDog(dt, t) {
-  const u = dog.userData;
-  dog.position.copy(G.dogPos);
-  dog.rotation.y = G.dogHeading;
-  const s = G.dogSpeed;
-  const stride = clamp(s / RUN_SPEED, 0, 1.4);
-
-  G.lean = damp(G.lean, clamp(-G.turnRate * s * 0.025, -0.4, 0.4), 10, dt);
-  G.squash = damp(G.squash, 0, 9, dt);
-  u.rig.rotation.z = G.lean;
-  u.rig.scale.set(1 + G.squash * 0.1, 1 - G.squash * 0.18, 1 + G.squash * 0.06);
-
-  if (G.onGround) {
-    G.legPhase += dt * (3 + s * 1.25);
-    for (const leg of u.legs) {
-      const off = (leg.front ? 0 : Math.PI * 0.9) + (leg.x > 0 ? 0.4 : 0);
-      const ph = G.legPhase + off;
-      leg.hip.rotation.x = Math.sin(ph) * 0.85 * stride;
-      leg.knee.rotation.x = (leg.front ? -1 : 1) * Math.max(0, Math.cos(ph)) * 0.9 * stride;
-    }
-    u.rig.position.y = Math.abs(Math.sin(G.legPhase)) * 0.08 * stride;
-    u.rig.rotation.x = Math.sin(G.legPhase) * 0.07 * stride - (G.skid ? 0.15 : 0);
-    // Footsteps: dust while running, more when skidding
-    G.stepTimer -= dt;
-    if (s > 3 && G.stepTimer <= 0) {
-      G.stepTimer = 0.9 / (2 + s * 0.6);
-      dustPuff(G.dogPos.x - Math.sin(G.dogHeading) * 0.4, G.dogPos.z - Math.cos(G.dogHeading) * 0.4, G.skid ? 3 : 1, 0.15, G.skid ? 2 : 0.6);
-      if (s > 9) sfx.step();
-    }
-  } else {
-    const rising = G.dogVy > 0;
-    for (const leg of u.legs) {
-      leg.hip.rotation.x = damp(leg.hip.rotation.x, leg.front ? (rising ? -1.3 : -0.7) : (rising ? 1.1 : 0.6), 12, dt);
-      leg.knee.rotation.x = damp(leg.knee.rotation.x, leg.front ? 0.3 : -0.2, 12, dt);
-    }
-    u.rig.position.y = 0;
-    u.rig.rotation.x = damp(u.rig.rotation.x, clamp(-G.dogVy * 0.06, -0.45, 0.35), 8, dt);
-  }
-
-  // Ears and tail on springs, kicked by vertical acceleration
-  const accY = (G.dogVy - G.prevVy) / Math.max(dt, 1e-3);
-  for (const e of u.ears) {
-    const target = -Math.min(s / 12, 1) * 1.0 - (G.onGround ? 0 : 0.4);
-    e.v += -accY * 0.002;
-    spring(e, target, 120, 9, dt);
-    e.pivot.rotation.x = e.a;
-  }
-  const happy = G.phase === 'carrying';
-  u.tail.rotation.z = Math.sin(t * (happy ? 22 : 9)) * (happy ? 0.8 : 0.35);
-  spring(u.tailSpring, -0.7 + (happy ? -0.5 : 0) + Math.min(s / 14, 1) * 0.6, 60, 6, dt);
-  u.tail.rotation.x = u.tailSpring.a;
-
-  u.jaw.rotation.x = happy ? 0.25 : damp(u.jaw.rotation.x, 0.12 + Math.sin(t * 12) * 0.04 + (s > 8 ? 0.15 : 0), 10, dt);
-  u.tongue.visible = !happy;
-
-  if (G.phase === 'flying' || G.phase === 'windup') {
-    tmp.copy(G.discPos).sub(G.dogPos);
-    const localYaw = wrapAngle(Math.atan2(tmp.x, tmp.z) - G.dogHeading);
-    u.head.rotation.y = damp(u.head.rotation.y, clamp(localYaw, -0.9, 0.9), 8, dt);
-    const pitch = -Math.atan2(tmp.y - 1, Math.hypot(tmp.x, tmp.z));
-    u.head.rotation.x = damp(u.head.rotation.x, clamp(pitch, -0.9, 0.3), 8, dt);
-  } else {
-    u.head.rotation.y = damp(u.head.rotation.y, 0, 6, dt);
-    u.head.rotation.x = damp(u.head.rotation.x, 0, 6, dt);
-  }
-  grassUniforms.uDog.value.copy(G.dogPos);
-}
-
-function animateOwner(dt, t) {
-  const { arms, body, headG } = owner.userData;
-  const R = arms.right, L = arms.left;
-  let targetYaw = Math.atan2(G.dogPos.x - owner.position.x, G.dogPos.z - owner.position.z);
-  body.position.y = Math.sin(t * 2) * 0.01;
-
-  if (G.phase === 'windup' && G.timer >= 0) {
-    targetYaw = G.plan.yaw;
-    const k = clamp(G.timer / 0.9, 0, 1);
-    // Backhand: arm swings across the chest, then snaps out
-    R.pitch.rotation.x = damp(R.pitch.rotation.x, -Math.PI / 2, 10, dt);
-    R.yaw.rotation.y = damp(R.yaw.rotation.y, k < 0.75 ? 1.9 : -1.0, k < 0.75 ? 6 : 30, dt);
-    body.rotation.y = damp(body.rotation.y, k < 0.75 ? 0.5 : -0.4, k < 0.75 ? 5 : 20, dt);
-    L.pitch.rotation.z = damp(L.pitch.rotation.z, 0.5, 6, dt);
-  } else if (G.phase === 'flying') {
-    R.yaw.rotation.y = damp(R.yaw.rotation.y, -1.2, 6, dt);
-    R.pitch.rotation.x = damp(R.pitch.rotation.x, -1.3, 4, dt);
-    body.rotation.y = damp(body.rotation.y, -0.3, 5, dt);
-    targetYaw = owner.rotation.y;
-    L.pitch.rotation.z = damp(L.pitch.rotation.z, 0, 6, dt);
-  } else {
-    R.yaw.rotation.y = damp(R.yaw.rotation.y, 0, 5, dt);
-    R.pitch.rotation.x = damp(R.pitch.rotation.x, 0, 5, dt);
-    body.rotation.y = damp(body.rotation.y, 0, 5, dt);
-    // Wave the dog back with the left arm
-    L.pitch.rotation.z = G.phase === 'carrying' ? 2.6 + Math.sin(t * 9) * 0.35 : damp(L.pitch.rotation.z, 0, 6, dt);
-  }
-  owner.rotation.y = angleDamp(owner.rotation.y, targetYaw, 6, dt);
-  // Head follows the disc in flight, the dog otherwise
-  const look = G.phase === 'flying' ? G.discPos : G.dogPos;
-  tmp.copy(look).sub(owner.position);
-  const hy = wrapAngle(Math.atan2(tmp.x, tmp.z) - owner.rotation.y - body.rotation.y);
-  headG.rotation.y = damp(headG.rotation.y, clamp(hy, -1, 1), 6, dt);
-}
-
-const _q = new THREE.Quaternion(), _qs = new THREE.Quaternion();
-function animateDisc(dt) {
-  const spinner = disc.userData.spinner;
-  if (G.phase === 'windup' || G.phase === 'intro') {
-    owner.userData.arms.right.hand.getWorldPosition(G.discPos);
-    disc.position.copy(G.discPos);
-    disc.quaternion.setFromEuler(new THREE.Euler(0.2, owner.rotation.y, 0));
-    spinner.rotation.y = 0;
-  } else if (G.phase === 'carrying') {
-    dog.userData.mouth.getWorldPosition(G.discPos);
-    disc.position.copy(G.discPos);
-    disc.quaternion.setFromEuler(new THREE.Euler(Math.PI / 2, G.dogHeading, 0, 'YXZ'));
-  } else {
-    disc.position.copy(G.discPos);
-    _q.setFromUnitVectors(UP, G.discN);
-    disc.quaternion.copy(_q);
-    G.discSpinAngle -= G.discSpin * dt;
-    spinner.rotation.y = G.discSpinAngle;
-  }
-
-  const flying = G.phase === 'flying';
-  shadowBlob.visible = flying || G.phase === 'ground';
-  if (shadowBlob.visible) {
-    shadowBlob.position.set(G.discPos.x, 0.04, G.discPos.z);
-    const s = 1 + G.discPos.y * 0.12;
-    shadowBlob.scale.set(s, s, s);
-    shadowBlob.material.opacity = clamp(0.45 - G.discPos.y * 0.04, 0.12, 0.45);
-  }
-  if (landRing.visible) landRing.scale.setScalar(1 + Math.sin(performance.now() / 150) * 0.08);
-  if (flying) Trail.push(G.discPos); else Trail.fade();
-  Trail.update();
-
-  arrow.visible = G.phase === 'carrying';
-  if (arrow.visible) arrow.position.set(owner.position.x, 2.8 + Math.sin(performance.now() / 180) * 0.2, owner.position.z);
-  arrow.rotation.y += dt * 3;
-}
-
-function updateCamera(dt) {
-  const focus = (G.phase === 'flying' || G.phase === 'ground') ? G.discPos : owner.position;
-  G.camFocus.x = damp(G.camFocus.x, focus.x, 5, dt);
-  G.camFocus.z = damp(G.camFocus.z, focus.z, 5, dt);
-  G.camFocus.y = damp(G.camFocus.y, Math.max(focus.y, 1), 5, dt);
-
-  const dx = G.dogPos.x - G.camFocus.x, dz = G.dogPos.z - G.camFocus.z;
-  if (!G.running && G.phase === 'intro') G.camYaw += dt * 0.15;
-  else if (Math.hypot(dx, dz) > 3) G.camYaw = angleDamp(G.camYaw, Math.atan2(dx, dz), G.phase === 'windup' ? 1.5 : 2.2, dt);
-
-  // Manual orbit with the right stick, drifting back to auto after a moment
-  if (Math.abs(input.camX) > 0) { G.camManual -= input.camX * 2.6 * dt; G.camIdle = 0; }
-  else { G.camIdle += dt; if (G.camIdle > 1.5) G.camManual = damp(G.camManual, 0, 1.2, dt); }
-  G.camManual = wrapAngle(G.camManual);
-  const yaw = G.camYaw + G.camManual;
-
-  const sprinting = G.dogSpeed > RUN_SPEED + 0.5;
-  G.fovKick = damp(G.fovKick, sprinting ? 7 : 0, 3, dt);
-  updateFov(G.fovKick);
-  Particles.setScale(window.innerHeight * renderer.getPixelRatio() / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)));
-
-  const dist = 8.5 + (sprinting ? 0.8 : 0), height = 4.2;
-  const cx = G.dogPos.x + Math.sin(yaw) * dist;
-  const cz = G.dogPos.z + Math.cos(yaw) * dist;
-  const cy = height + G.dogPos.y * 0.5;
-  camera.position.set(
-    damp(camera.position.x, cx, 8, dt),
-    damp(camera.position.y, cy, 8, dt),
-    damp(camera.position.z, cz, 8, dt)
-  );
-  tmp.set(
-    G.dogPos.x + (G.camFocus.x - G.dogPos.x) * 0.25,
-    1.2 + G.dogPos.y * 0.5 + clamp(G.camFocus.y - 1, 0, 6) * 0.25,
-    G.dogPos.z + (G.camFocus.z - G.dogPos.z) * 0.25
-  );
-  camera.lookAt(tmp);
-  G.shake = damp(G.shake, 0, 6, dt);
-  if (G.shake > 0.005) {
-    camera.position.x += rand(-1, 1) * G.shake * 0.4;
-    camera.position.y += rand(-1, 1) * G.shake * 0.4;
-  }
-
-  sky.position.copy(camera.position);
-  sun.position.set(G.dogPos.x + SUN_DIR.x * 60, SUN_DIR.y * 60, G.dogPos.z + SUN_DIR.z * 60);
-  sun.target.position.copy(G.dogPos);
-
-  // Wind indicator, relative to where the camera looks
-  const ws = Math.hypot(G.wind.x, G.wind.z);
-  if (ws > 0.05) {
-    const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-    const fwd = G.wind.x * fx + G.wind.z * fz, right = G.wind.x * -fz + G.wind.z * fx;
-    ui.windArrow.style.transform = `rotate(${Math.atan2(right, fwd)}rad)`;
-    ui.windArrow.style.opacity = '1';
-  } else {
-    ui.windArrow.style.opacity = '0.25';
-  }
-  const wt = ws < 0.3 ? 'Pas de vent' : `${ws.toFixed(1).replace('.', ',')} m/s`;
-  if (ui.windText.textContent !== wt) ui.windText.textContent = wt;
-  if (windGain) windGain.gain.value = 0.015 + ws * 0.012;
-  grassUniforms.uWind.value.set(G.wind.x, G.wind.z).multiplyScalar(0.35).add(new THREE.Vector2(0.4, 0.2));
-}
-
-/* ======================================================================
-   Main loop
-   ====================================================================== */
-const clock = new THREE.Clock();
-let acc = 0;
-camera.position.set(0, 4, 12);
-resize();
-
-function handleMenuInput() {
-  if (input.pausePressed && G.running) setPaused(!G.paused);
-  else if (input.confirmPressed && G.paused) setPaused(false);
-  else if (input.confirmPressed && !G.running && (!$('startScreen').hidden || !$('overScreen').hidden)) start();
-  input.pausePressed = false;
-  input.confirmPressed = false;
-}
-
-function frame() {
-  const dt = Math.min(clock.getDelta(), 0.1);
-  const t = clock.elapsedTime;
-  readInput();
-  handleMenuInput();
-
-  if (!G.paused) {
-    acc += dt;
-    let steps = 0;
-    while (acc >= STEP && steps < 24) { physicsStep(STEP); acc -= STEP; steps++; }
-    if (steps === 24) acc = 0;
-    animateDog(dt, t);
-    animateOwner(dt, t);
-    animateDisc(dt);
-    Particles.update(dt);
-    grassUniforms.uTime.value = t;
-    for (const c of clouds) { c.position.x += dt * 0.8; if (c.position.x > 320) c.position.x = -320; }
-  }
-  updateCamera(G.paused ? 0 : dt);
-
-  const st = G.stamina.toFixed(3);
-  if (ui.staminaFill.dataset.v !== st) { ui.staminaFill.dataset.v = st; ui.staminaFill.style.transform = `scaleX(${st})`; }
-  ui.stamina.classList.toggle('tired', G.tired);
-  if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4) setStatus('Va chercher le frisbee et rapporte-le');
-
-  renderer.render(scene, camera);
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-</script>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>
