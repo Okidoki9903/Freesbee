@@ -1,0 +1,218 @@
+// Translations. English is the default; the choice is remembered.
+const K = (k) => `<kbd>${k}</kbd>`;
+const R = (k) => `<kbd class="round">${k}</kbd>`;
+
+const STR = {
+  en: {
+    locale: 'en-US', name: 'English',
+    'brand.tag': 'Pick your dog. Your owner throws, you catch.',
+    'menu.play': 'Play', 'menu.playHint': 'A or Start · ◀ ▶ to change dog', 'menu.prev': 'Previous dog', 'menu.next': 'Next dog',
+    'menu.controls': 'Controls ▾', 'menu.lang': 'Language', 'menu.pick': 'Choose your dog',
+    'diff.label': 'Difficulty', 'diff.facile': 'Easy', 'diff.normal': 'Normal', 'diff.pro': 'Pro',
+    'diffNote.facile': 'Landing ring on every throw, light wind.',
+    'diffNote.normal': 'Landing ring on the first 3 throws.',
+    'diffNote.pro': 'No help, strong wind, faster throws. Points ×1.5.',
+    'ctrl.run': 'Run', 'ctrl.jump': 'Jump', 'ctrl.sprint': 'Sprint', 'ctrl.film': 'Record', 'ctrl.pause': 'Pause', 'ctrl.menu': 'Menu', 'ctrl.camera': 'Camera',
+    'keys.run': `${K('W')}${K('A')}${K('S')}${K('D')} or arrows`,
+    'keys.jump': `${K('Space')}, hold to jump higher. Near the disc, the dog leaps at it.`,
+    'keys.sprint': K('Shift'), 'keys.film': K('R'), 'keys.pause': `${K('Esc')} or ${K('P')}`,
+    'keys.menu': `${K('◀')}${K('▶')} dog, ${K('▲')}${K('▼')} difficulty, ${K('Enter')} play`,
+    'touch.run': 'left thumb anywhere', 'touch.jump': '“Jump” button, hold to go higher', 'touch.sprint': '“Sprint” button', 'touch.film': 'red button at the top',
+    'pad.run': 'left stick or D-pad', 'pad.jump': `${R('A')} / ${R('B')}, hold to go higher`,
+    'pad.sprint': `${K('R')} ${K('ZR')} ${K('L')} ${K('ZL')} ${R('X')} ${R('Y')}`, 'pad.camera': 'right stick', 'pad.film': K('Select'), 'pad.pause': K('Start'),
+    'hud.wind': 'Wind', 'hud.noWind': 'No wind', 'hud.pause': 'Pause', 'hud.rec': 'Record your game (R / Select)', 'hud.lives': 'Lives left', 'hud.pad': 'Controller',
+    'touch.jumpBtn': 'Jump', 'touch.sprintBtn': 'Sprint',
+    'pause.title': 'Paused', 'pause.resume': 'Resume', 'pause.menu': 'Change dog',
+    'over.title': 'Game over', 'over.again': 'Play again', 'over.post': 'Post', 'over.copy': 'Copy link', 'over.menu': 'Change dog',
+    'over.catches': (n) => `${n} ${n === 1 ? 'catch' : 'catches'}`, 'over.bestCombo': 'best combo', 'over.newRecord': 'new record!', 'over.record': 'record',
+    'video.title': 'Your clip is ready', 'video.download': 'Download video', 'video.share': 'Share…', 'video.x': 'Post on X',
+    'video.note': "X doesn't let a website attach the video for you: download it, then add it to your post. The game link is already in the text.",
+    'video.close': 'Close', 'video.webm': ' X needs MP4 and this browser only records WebM. Record from an up-to-date Chrome or Safari to get MP4.',
+    'st.waiting': 'Your owner is waiting…', 'st.windup': 'Your owner is about to throw… watch where they turn!', 'st.catch': 'Catch it!',
+    'st.bring': 'Nice! Bring the disc back to your owner', 'st.fetch': 'Go get the disc and bring it back', 'st.bring2': 'Bring the disc back to your owner', 'st.none': 'Out of discs…',
+    'throw.floater': 'Floater!', 'throw.laser': 'Laser throw!', 'throw.hyzer': 'Curve ball!',
+    'c.caught': 'Caught!', 'c.dive': 'Diving catch!', 'c.acro': 'Acrobatic!', 'c.jump': 'Mid-air!', 'c.close': 'Just in time!', 'c.shoulder': 'over the shoulder',
+    'c.tooFast': 'Too fast!', 'c.again': 'Catch it again!', 'c.bounce': 'Bounced off!', 'c.miss': 'Missed!', 'c.last': 'Last chance', 'c.left': (n) => `${n} tries left`, 'c.goodDog': 'Good dog!', 'combo': 'Combo',
+    'toast.padOn': (n) => `Controller connected: ${n}`, 'toast.padOff': 'Controller disconnected', 'toast.copied': (u) => `Link copied: ${u}`,
+    'toast.noRec': "This browser can't record the game. Try an up-to-date Chrome, Edge or Safari.", 'toast.recOn': 'Recording. Press again to stop (60 s max).',
+    'share.score': (s, b) => `I scored ${s} points with my ${b} in Freesbee 🐕🥏 Can you beat me?`, 'share.menu': 'My dog in Freesbee 🐕🥏 Come play:',
+    'overlay.play': 'Play free:', 'stat.of': (l, v) => `${l} ${v} out of 10`,
+    'stat.vitesse': 'Speed', 'stat.accel': 'Acceleration', 'stat.agilite': 'Agility', 'stat.saut': 'Jump', 'stat.endurance': 'Stamina', 'stat.gueule': 'Catch',
+    breeds: {
+      collie: ['Border Collie', 'The frisbee genius. Quick, tireless and precise.'],
+      greyhound: ['Greyhound', 'Fastest dog in the park, but it turns wide.'],
+      jack: ['Jack Russell', 'A tiny spring. Nobody starts or jumps like it.'],
+      malinois: ['Belgian Malinois', 'The jump king. Powerful and explosive.'],
+      labrador: ['Labrador', 'Golden mouth: nothing gets away. But it’s heavy.'],
+      husky: ['Husky', 'Tireless. Still sprinting when the others are panting.'],
+      corgi: ['Corgi', 'Short legs, huge heart. Turns on the spot.'],
+      dalmatian: ['Dalmatian', 'Elegant and tireless. Good at everything, champion of nothing.'],
+    },
+  },
+  fr: {
+    locale: 'fr-FR', name: 'Français',
+    'brand.tag': 'Choisis ton chien. Ton maître lance, toi tu attrapes.',
+    'menu.play': 'Jouer', 'menu.playHint': 'A ou Start · ◀ ▶ pour changer de chien', 'menu.prev': 'Chien précédent', 'menu.next': 'Chien suivant',
+    'menu.controls': 'Commandes ▾', 'menu.lang': 'Langue', 'menu.pick': 'Choix du chien',
+    'diff.label': 'Difficulté', 'diff.facile': 'Facile', 'diff.normal': 'Normal', 'diff.pro': 'Pro',
+    'diffNote.facile': "Cercle d'atterrissage à chaque lancer, vent léger.",
+    'diffNote.normal': "Cercle d'atterrissage sur les 3 premiers lancers.",
+    'diffNote.pro': 'Aucune aide, vent fort, lancers plus rapides. Points ×1,5.',
+    'ctrl.run': 'Courir', 'ctrl.jump': 'Sauter', 'ctrl.sprint': 'Sprinter', 'ctrl.film': 'Filmer', 'ctrl.pause': 'Pause', 'ctrl.menu': 'Menu', 'ctrl.camera': 'Caméra',
+    'keys.run': `${K('Z')}${K('Q')}${K('S')}${K('D')} / ${K('W')}${K('A')}${K('S')}${K('D')} / flèches`,
+    'keys.jump': `${K('Espace')}, maintenu = plus haut. Près du frisbee, le chien bondit vers lui.`,
+    'keys.sprint': K('Maj'), 'keys.film': K('R'), 'keys.pause': `${K('Échap')} ou ${K('P')}`,
+    'keys.menu': `${K('◀')}${K('▶')} chien, ${K('▲')}${K('▼')} difficulté, ${K('Entrée')} jouer`,
+    'touch.run': "pouce gauche n'importe où", 'touch.jump': 'bouton « Saut », maintenu = plus haut', 'touch.sprint': 'bouton « Sprint »', 'touch.film': 'bouton rouge en haut',
+    'pad.run': 'stick gauche ou croix', 'pad.jump': `${R('A')} / ${R('B')}, maintenu = plus haut`,
+    'pad.sprint': `${K('R')} ${K('ZR')} ${K('L')} ${K('ZL')} ${R('X')} ${R('Y')}`, 'pad.camera': 'stick droit', 'pad.film': K('Select'), 'pad.pause': K('Start'),
+    'hud.wind': 'Vent', 'hud.noWind': 'Pas de vent', 'hud.pause': 'Pause', 'hud.rec': 'Filmer la partie (R / Select)', 'hud.lives': 'Vies restantes', 'hud.pad': 'Manette',
+    'touch.jumpBtn': 'Saut', 'touch.sprintBtn': 'Sprint',
+    'pause.title': 'Pause', 'pause.resume': 'Reprendre', 'pause.menu': 'Changer de chien',
+    'over.title': 'Fin de la partie', 'over.again': 'Rejouer', 'over.post': 'Publier', 'over.copy': 'Copier le lien', 'over.menu': 'Changer de chien',
+    'over.catches': (n) => `${n} frisbee${n > 1 ? 's' : ''} attrapé${n > 1 ? 's' : ''}`, 'over.bestCombo': 'meilleur combo', 'over.newRecord': 'nouveau record !', 'over.record': 'record',
+    'video.title': 'Ta vidéo est prête', 'video.download': 'Télécharger la vidéo', 'video.share': 'Partager…', 'video.x': 'Poster sur X',
+    'video.note': "X ne permet pas d'ajouter la vidéo à ta place : télécharge-la, puis joins-la au post. Le lien du jeu est déjà dans le texte.",
+    'video.close': 'Fermer', 'video.webm': ' X veut du MP4 : ce navigateur ne sait faire que du WebM. Filme depuis Chrome ou Safari à jour pour avoir du MP4.',
+    'st.waiting': "Le maître t'attend…", 'st.windup': 'Le maître va lancer… regarde où il se tourne !', 'st.catch': 'Attrape-le !',
+    'st.bring': 'Bravo ! Rapporte le frisbee au maître', 'st.fetch': 'Va chercher le frisbee et rapporte-le', 'st.bring2': 'Rapporte le frisbee au maître', 'st.none': 'Plus de frisbee…',
+    'throw.floater': 'Lancer plané !', 'throw.laser': 'Lancer tendu !', 'throw.hyzer': 'Lancer courbé !',
+    'c.caught': 'Attrapé !', 'c.dive': 'Plongeon !', 'c.acro': 'Acrobatie !', 'c.jump': 'En plein saut !', 'c.close': 'Juste à temps !', 'c.shoulder': "par-dessus l'épaule",
+    'c.tooFast': 'Trop rapide !', 'c.again': 'Rattrape-le !', 'c.bounce': 'Rebond !', 'c.miss': 'Raté !', 'c.last': 'Dernière chance', 'c.left': (n) => `Encore ${n} essais`, 'c.goodDog': 'Bon chien !', 'combo': 'Combo',
+    'toast.padOn': (n) => `Manette connectée : ${n}`, 'toast.padOff': 'Manette déconnectée', 'toast.copied': (u) => `Lien copié : ${u}`,
+    'toast.noRec': 'Ce navigateur ne sait pas filmer le jeu. Essaie Chrome, Edge ou Safari à jour.', 'toast.recOn': 'Enregistrement lancé. Appuie encore pour arrêter (60 s max).',
+    'share.score': (s, b) => `J'ai fait ${s} points avec mon ${b} sur Freesbee 🐕🥏 Qui fait mieux ?`, 'share.menu': 'Mon chien sur Freesbee 🐕🥏 Viens jouer :',
+    'overlay.play': 'Joue gratuitement :', 'stat.of': (l, v) => `${l} ${v} sur 10`,
+    'stat.vitesse': 'Vitesse', 'stat.accel': 'Démarrage', 'stat.agilite': 'Agilité', 'stat.saut': 'Saut', 'stat.endurance': 'Endurance', 'stat.gueule': 'Gueule',
+    breeds: {
+      collie: ['Border Collie', 'Le génie du frisbee. Vif, endurant et précis.'],
+      greyhound: ['Lévrier', 'Le plus rapide du parc, mais il tourne large.'],
+      jack: ['Jack Russell', 'Un petit ressort. Démarre et saute comme personne.'],
+      malinois: ['Berger malinois', 'Le roi du saut. Puissant et explosif.'],
+      labrador: ['Labrador', 'Une gueule en or : rien ne lui échappe. Mais il est lourd.'],
+      husky: ['Husky', 'Infatigable. Il sprinte encore quand les autres soufflent.'],
+      corgi: ['Corgi', 'Pattes courtes, cœur immense. Il tourne sur place.'],
+      dalmatian: ['Dalmatien', 'Élégant et endurant. Bon partout, champion nulle part.'],
+    },
+  },
+  es: {
+    locale: 'es-ES', name: 'Español',
+    'brand.tag': 'Elige tu perro. Tu dueño lanza, tú atrapas.',
+    'menu.play': 'Jugar', 'menu.playHint': 'A o Start · ◀ ▶ para cambiar de perro', 'menu.prev': 'Perro anterior', 'menu.next': 'Perro siguiente',
+    'menu.controls': 'Controles ▾', 'menu.lang': 'Idioma', 'menu.pick': 'Elige tu perro',
+    'diff.label': 'Dificultad', 'diff.facile': 'Fácil', 'diff.normal': 'Normal', 'diff.pro': 'Pro',
+    'diffNote.facile': 'Círculo de aterrizaje en cada lanzamiento, poco viento.',
+    'diffNote.normal': 'Círculo de aterrizaje en los 3 primeros lanzamientos.',
+    'diffNote.pro': 'Sin ayudas, viento fuerte, lanzamientos más rápidos. Puntos ×1,5.',
+    'ctrl.run': 'Correr', 'ctrl.jump': 'Saltar', 'ctrl.sprint': 'Esprintar', 'ctrl.film': 'Grabar', 'ctrl.pause': 'Pausa', 'ctrl.menu': 'Menú', 'ctrl.camera': 'Cámara',
+    'keys.run': `${K('W')}${K('A')}${K('S')}${K('D')} o flechas`,
+    'keys.jump': `${K('Espacio')}, mantén para saltar más alto. Cerca del disco, el perro salta hacia él.`,
+    'keys.sprint': K('Mayús'), 'keys.film': K('R'), 'keys.pause': `${K('Esc')} o ${K('P')}`,
+    'keys.menu': `${K('◀')}${K('▶')} perro, ${K('▲')}${K('▼')} dificultad, ${K('Intro')} jugar`,
+    'touch.run': 'pulgar izquierdo en cualquier sitio', 'touch.jump': 'botón «Salto», mantén para subir más', 'touch.sprint': 'botón «Sprint»', 'touch.film': 'botón rojo de arriba',
+    'pad.run': 'stick izquierdo o cruceta', 'pad.jump': `${R('A')} / ${R('B')}, mantén para subir más`,
+    'pad.sprint': `${K('R')} ${K('ZR')} ${K('L')} ${K('ZL')} ${R('X')} ${R('Y')}`, 'pad.camera': 'stick derecho', 'pad.film': K('Select'), 'pad.pause': K('Start'),
+    'hud.wind': 'Viento', 'hud.noWind': 'Sin viento', 'hud.pause': 'Pausa', 'hud.rec': 'Grabar la partida (R / Select)', 'hud.lives': 'Vidas restantes', 'hud.pad': 'Mando',
+    'touch.jumpBtn': 'Salto', 'touch.sprintBtn': 'Sprint',
+    'pause.title': 'Pausa', 'pause.resume': 'Continuar', 'pause.menu': 'Cambiar de perro',
+    'over.title': 'Fin de la partida', 'over.again': 'Jugar otra vez', 'over.post': 'Publicar', 'over.copy': 'Copiar enlace', 'over.menu': 'Cambiar de perro',
+    'over.catches': (n) => `${n} ${n === 1 ? 'atrapada' : 'atrapadas'}`, 'over.bestCombo': 'mejor combo', 'over.newRecord': '¡nuevo récord!', 'over.record': 'récord',
+    'video.title': 'Tu vídeo está listo', 'video.download': 'Descargar vídeo', 'video.share': 'Compartir…', 'video.x': 'Publicar en X',
+    'video.note': 'X no deja que una web adjunte el vídeo por ti: descárgalo y añádelo a tu post. El enlace del juego ya está en el texto.',
+    'video.close': 'Cerrar', 'video.webm': ' X necesita MP4 y este navegador solo graba WebM. Graba desde Chrome o Safari actualizados para obtener MP4.',
+    'st.waiting': 'Tu dueño te espera…', 'st.windup': 'Tu dueño va a lanzar… ¡mira hacia dónde se gira!', 'st.catch': '¡Atrápalo!',
+    'st.bring': '¡Bien! Llévale el disco a tu dueño', 'st.fetch': 'Ve a por el disco y tráelo', 'st.bring2': 'Llévale el disco a tu dueño', 'st.none': 'No quedan discos…',
+    'throw.floater': '¡Lanzamiento planeado!', 'throw.laser': '¡Lanzamiento tenso!', 'throw.hyzer': '¡Lanzamiento con efecto!',
+    'c.caught': '¡Atrapado!', 'c.dive': '¡En plancha!', 'c.acro': '¡Acrobacia!', 'c.jump': '¡En pleno salto!', 'c.close': '¡Justo a tiempo!', 'c.shoulder': 'por encima del hombro',
+    'c.tooFast': '¡Demasiado rápido!', 'c.again': '¡Atrápalo otra vez!', 'c.bounce': '¡Rebote!', 'c.miss': '¡Fallo!', 'c.last': 'Última oportunidad', 'c.left': (n) => `Quedan ${n} intentos`, 'c.goodDog': '¡Buen perro!', 'combo': 'Combo',
+    'toast.padOn': (n) => `Mando conectado: ${n}`, 'toast.padOff': 'Mando desconectado', 'toast.copied': (u) => `Enlace copiado: ${u}`,
+    'toast.noRec': 'Este navegador no puede grabar el juego. Prueba Chrome, Edge o Safari actualizados.', 'toast.recOn': 'Grabando. Pulsa otra vez para parar (60 s máx.).',
+    'share.score': (s, b) => `He hecho ${s} puntos con mi ${b} en Freesbee 🐕🥏 ¿Me superas?`, 'share.menu': 'Mi perro en Freesbee 🐕🥏 Ven a jugar:',
+    'overlay.play': 'Juega gratis:', 'stat.of': (l, v) => `${l} ${v} de 10`,
+    'stat.vitesse': 'Velocidad', 'stat.accel': 'Aceleración', 'stat.agilite': 'Agilidad', 'stat.saut': 'Salto', 'stat.endurance': 'Resistencia', 'stat.gueule': 'Atrapada',
+    breeds: {
+      collie: ['Border Collie', 'El genio del disco. Rápido, incansable y preciso.'],
+      greyhound: ['Galgo', 'El más rápido del parque, pero gira muy abierto.'],
+      jack: ['Jack Russell', 'Un pequeño muelle. Nadie arranca ni salta como él.'],
+      malinois: ['Pastor belga malinois', 'El rey del salto. Potente y explosivo.'],
+      labrador: ['Labrador', 'Boca de oro: no se le escapa nada. Pero pesa.'],
+      husky: ['Husky', 'Incansable. Sigue esprintando cuando los demás jadean.'],
+      corgi: ['Corgi', 'Patas cortas, corazón enorme. Gira sobre sí mismo.'],
+      dalmatian: ['Dálmata', 'Elegante y resistente. Bueno en todo, campeón en nada.'],
+    },
+  },
+  pt: {
+    locale: 'pt-BR', name: 'Português',
+    'brand.tag': 'Escolha seu cachorro. O dono lança, você pega.',
+    'menu.play': 'Jogar', 'menu.playHint': 'A ou Start · ◀ ▶ para trocar de cachorro', 'menu.prev': 'Cachorro anterior', 'menu.next': 'Próximo cachorro',
+    'menu.controls': 'Controles ▾', 'menu.lang': 'Idioma', 'menu.pick': 'Escolha seu cachorro',
+    'diff.label': 'Dificuldade', 'diff.facile': 'Fácil', 'diff.normal': 'Normal', 'diff.pro': 'Pro',
+    'diffNote.facile': 'Círculo de pouso em todo lançamento, vento fraco.',
+    'diffNote.normal': 'Círculo de pouso nos 3 primeiros lançamentos.',
+    'diffNote.pro': 'Sem ajuda, vento forte, lançamentos mais rápidos. Pontos ×1,5.',
+    'ctrl.run': 'Correr', 'ctrl.jump': 'Pular', 'ctrl.sprint': 'Arrancar', 'ctrl.film': 'Gravar', 'ctrl.pause': 'Pausa', 'ctrl.menu': 'Menu', 'ctrl.camera': 'Câmera',
+    'keys.run': `${K('W')}${K('A')}${K('S')}${K('D')} ou setas`,
+    'keys.jump': `${K('Espaço')}, segure para pular mais alto. Perto do disco, o cachorro salta nele.`,
+    'keys.sprint': K('Shift'), 'keys.film': K('R'), 'keys.pause': `${K('Esc')} ou ${K('P')}`,
+    'keys.menu': `${K('◀')}${K('▶')} cachorro, ${K('▲')}${K('▼')} dificuldade, ${K('Enter')} jogar`,
+    'touch.run': 'polegar esquerdo em qualquer lugar', 'touch.jump': 'botão “Pulo”, segure para subir mais', 'touch.sprint': 'botão “Sprint”', 'touch.film': 'botão vermelho no topo',
+    'pad.run': 'analógico esquerdo ou direcional', 'pad.jump': `${R('A')} / ${R('B')}, segure para subir mais`,
+    'pad.sprint': `${K('R')} ${K('ZR')} ${K('L')} ${K('ZL')} ${R('X')} ${R('Y')}`, 'pad.camera': 'analógico direito', 'pad.film': K('Select'), 'pad.pause': K('Start'),
+    'hud.wind': 'Vento', 'hud.noWind': 'Sem vento', 'hud.pause': 'Pausa', 'hud.rec': 'Gravar a partida (R / Select)', 'hud.lives': 'Vidas restantes', 'hud.pad': 'Controle',
+    'touch.jumpBtn': 'Pulo', 'touch.sprintBtn': 'Sprint',
+    'pause.title': 'Pausa', 'pause.resume': 'Continuar', 'pause.menu': 'Trocar de cachorro',
+    'over.title': 'Fim de jogo', 'over.again': 'Jogar de novo', 'over.post': 'Postar', 'over.copy': 'Copiar link', 'over.menu': 'Trocar de cachorro',
+    'over.catches': (n) => `${n} ${n === 1 ? 'pegada' : 'pegadas'}`, 'over.bestCombo': 'melhor combo', 'over.newRecord': 'novo recorde!', 'over.record': 'recorde',
+    'video.title': 'Seu vídeo está pronto', 'video.download': 'Baixar vídeo', 'video.share': 'Compartilhar…', 'video.x': 'Postar no X',
+    'video.note': 'O X não deixa um site anexar o vídeo por você: baixe e adicione ao post. O link do jogo já está no texto.',
+    'video.close': 'Fechar', 'video.webm': ' O X precisa de MP4 e este navegador só grava WebM. Grave no Chrome ou Safari atualizados para ter MP4.',
+    'st.waiting': 'Seu dono está esperando…', 'st.windup': 'Seu dono vai lançar… veja para onde ele vira!', 'st.catch': 'Pega!',
+    'st.bring': 'Boa! Leve o disco de volta ao dono', 'st.fetch': 'Vá buscar o disco e traga de volta', 'st.bring2': 'Leve o disco de volta ao dono', 'st.none': 'Acabaram os discos…',
+    'throw.floater': 'Lançamento planado!', 'throw.laser': 'Lançamento reto!', 'throw.hyzer': 'Lançamento com curva!',
+    'c.caught': 'Pegou!', 'c.dive': 'Mergulho!', 'c.acro': 'Acrobacia!', 'c.jump': 'No ar!', 'c.close': 'Na hora!', 'c.shoulder': 'por cima do ombro',
+    'c.tooFast': 'Rápido demais!', 'c.again': 'Pega de novo!', 'c.bounce': 'Quicou!', 'c.miss': 'Errou!', 'c.last': 'Última chance', 'c.left': (n) => `Faltam ${n} tentativas`, 'c.goodDog': 'Bom garoto!', 'combo': 'Combo',
+    'toast.padOn': (n) => `Controle conectado: ${n}`, 'toast.padOff': 'Controle desconectado', 'toast.copied': (u) => `Link copiado: ${u}`,
+    'toast.noRec': 'Este navegador não consegue gravar o jogo. Tente Chrome, Edge ou Safari atualizados.', 'toast.recOn': 'Gravando. Aperte de novo para parar (máx. 60 s).',
+    'share.score': (s, b) => `Fiz ${s} pontos com meu ${b} no Freesbee 🐕🥏 Consegue me superar?`, 'share.menu': 'Meu cachorro no Freesbee 🐕🥏 Vem jogar:',
+    'overlay.play': 'Jogue grátis:', 'stat.of': (l, v) => `${l} ${v} de 10`,
+    'stat.vitesse': 'Velocidade', 'stat.accel': 'Arrancada', 'stat.agilite': 'Agilidade', 'stat.saut': 'Pulo', 'stat.endurance': 'Fôlego', 'stat.gueule': 'Pegada',
+    breeds: {
+      collie: ['Border Collie', 'O gênio do disco. Rápido, incansável e preciso.'],
+      greyhound: ['Galgo', 'O mais rápido do parque, mas faz curvas abertas.'],
+      jack: ['Jack Russell', 'Uma molinha. Ninguém arranca nem pula como ele.'],
+      malinois: ['Pastor-belga-malinois', 'O rei do pulo. Forte e explosivo.'],
+      labrador: ['Labrador', 'Boca de ouro: nada escapa. Mas é pesado.'],
+      husky: ['Husky', 'Incansável. Ainda corre quando os outros já cansaram.'],
+      corgi: ['Corgi', 'Pernas curtas, coração enorme. Gira no lugar.'],
+      dalmatian: ['Dálmata', 'Elegante e resistente. Bom em tudo, campeão em nada.'],
+    },
+  },
+};
+
+export const LANGS = Object.keys(STR).map((code) => ({ code, name: STR[code].name }));
+let lang = 'en';
+try { const saved = localStorage.getItem('freesbee-lang'); if (saved && STR[JSON.parse(saved)]) lang = JSON.parse(saved); } catch (e) { /* storage unavailable */ }
+
+export function getLang() { return lang; }
+export function setLang(code) {
+  if (!STR[code]) return;
+  lang = code;
+  try { localStorage.setItem('freesbee-lang', JSON.stringify(code)); } catch (e) { /* storage unavailable */ }
+  applyDom();
+}
+export function t(key, ...args) {
+  const v = STR[lang][key] ?? STR.en[key] ?? key;
+  return typeof v === 'function' ? v(...args) : v;
+}
+export function breedText(id) { return STR[lang].breeds[id] || STR.en.breeds[id]; }
+export function locale() { return STR[lang].locale; }
+export function decimalComma() { return lang !== 'en'; }
+
+// data-i18n: text, data-i18n-html: trusted markup from this file, data-i18n-aria / -title: attributes
+export function applyDom(root = document) {
+  document.documentElement.lang = lang;
+  for (const el of root.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of root.querySelectorAll('[data-i18n-html]')) el.innerHTML = t(el.dataset.i18nHtml);
+  for (const el of root.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  for (const el of root.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+}

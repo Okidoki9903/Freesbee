@@ -28,9 +28,11 @@ function mix(a, b, t) {
 }
 
 export class Owner {
-  constructor() {
+  constructor(look = {}) {
     const std = (color, roughness = 0.8) => new THREE.MeshStandardMaterial({ color, roughness });
-    const skin = std(0x8d5a3b), shirt = std(0xf2c230), pants = std(0x2d4d7a, 0.9), capM = std(0x1f3a22), shoe = std(0xf5f5f5, 0.6), hair = std(0x1a120c, 0.9);
+    const skin = std(look.skin ?? 0x8d5a3b), shirt = std(look.shirt ?? 0xf2c230), pants = std(look.pants ?? 0x2d4d7a, 0.9);
+    const capM = std(look.cap ?? 0x1f3a22), shoe = std(0xf5f5f5, 0.6), hair = std(look.hair ?? 0x1a120c, 0.9);
+    this.hasCap = look.cap !== null;
     const cap = (r, len, m) => new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 5, 12), m);
 
     const root = new THREE.Group();
@@ -83,11 +85,13 @@ export class Owner {
     hairM.position.y = 0.02;
     headG.add(hairM);
     const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.14, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), capM);
+    capTop.visible = this.hasCap;
     capTop.position.y = 0.04;
     headG.add(capTop);
     const visor = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.015, 16, 1, false, -Math.PI / 2, Math.PI), capM);
     visor.position.set(0, 0.05, 0.1);
     visor.scale.z = 1.3;
+    visor.visible = this.hasCap;
     headG.add(visor);
     for (const s of [-1, 1]) {
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), std(0x151515, 0.3));
@@ -142,7 +146,8 @@ export class Owner {
   play(keys) { this.anim = { keys, t: 0, from: { ...this.pose } }; }
   setBase(name) { this.base = name; }
 
-  update(dt, t, { yaw, look }) {
+  update(dt, t, opts) {
+    const { yaw, look } = opts;
     this.root.rotation.y = yaw;
     let target;
     if (this.anim) {
@@ -188,6 +193,20 @@ export class Owner {
     r.wrist.rotation.set(0, 0, p.rWrist);
     l.shoulder.rotation.set(p.lPitch, p.lYaw, p.lRaise + wave, 'YXZ');
     l.elbow.rotation.set(0, 0, -p.lElbow);
+
+    // Walking: swing legs and arms over the pose
+    if (opts.walk !== undefined) {
+      const w = opts.walk, sw = Math.sin(w);
+      for (const leg of this.legs) {
+        const k = leg.s < 0 ? sw : -sw;
+        leg.hip.rotation.set(k * 0.45, 0, 0);
+        leg.knee.rotation.x = Math.max(0, -k) * 0.7 + 0.05;
+      }
+      r.shoulder.rotation.set(sw * 0.35, 0, 0.05, 'YXZ');
+      l.shoulder.rotation.set(-sw * 0.35, 0, -0.05, 'YXZ');
+      this.pelvis.position.y = 0.95 + Math.abs(Math.cos(w)) * 0.025;
+      this.torso.rotation.set(0.04, sw * 0.08, 0, 'YXZ');
+    }
 
     // Head looks at the dog or the disc
     if (look) {

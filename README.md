@@ -2,6 +2,10 @@
 
 Jeu 3D en three.js : choisis ton chien, ton maître lance le frisbee, et tu dois l'attraper avant qu'il touche l'herbe.
 
+Langues : anglais (par défaut), français, espagnol, portugais. Le choix se fait dans le menu, en haut du panneau.
+
+Pour réfléchir à la suite du jeu avec d'autres outils : [docs/BRAINSTORM_PROMPT.md](docs/BRAINSTORM_PROMPT.md).
+
 **Jouer en ligne : https://okidoki9903.github.io/Freesbee/** (après activation de GitHub Pages, voir plus bas)
 
 ## Les chiens
@@ -75,9 +79,13 @@ python3 -m http.server 8000
 
 ## Sous le capot
 
-- `src/dog.js` : chien procédural. Chaque patte a trois segments pilotés par cinématique inverse (IK à deux os plus le pied), pour que les pattes se posent au sol sans glisser. L'allure passe du pas au trot puis au galop rotatoire selon la vitesse rapportée à la taille des pattes, avec l'ordre d'appui de chaque allure. La colonne se plie en deux moitiés au galop. Oreilles et queue sont montées sur ressorts.
+- `src/sculpt.js` : « sculpture » du chien à la manière des métaballes de Blender. Des volumes (cônes arrondis, ellipsoïdes) fusionnent en douceur (smooth union de champs de distance), puis sont transformés en maillage lisse (surface nets, normales tirées du gradient). S'y ajoute une fourrure en couches (shell texturing).
+- `src/dog.js` : chien procédural. Le corps est sculpté autour du squelette, lié aux os (skinning calculé d'après le volume le plus proche), et la robe est peinte par zones : ventre, poitrail, liste, masque, taches de dalmatien, manteau du husky.
+  Squelette : chaque patte a trois segments pilotés par cinématique inverse (IK à deux os plus le pied), pour que les pattes se posent au sol sans glisser. L'allure passe du pas au trot puis au galop rotatoire selon la vitesse rapportée à la taille des pattes, avec l'ordre d'appui de chaque allure. La colonne se plie en deux moitiés au galop. Oreilles et queue sont montées sur ressorts.
 - `src/owner.js` : maître articulé, animé par poses clés. Pour le revers : pas en avant, torsion hanches puis épaules, bras replié sur la poitrine, déroulé et accompagnement. Il se baisse aussi pour reprendre le frisbee dans la gueule du chien.
 - `src/aero.js` : vol du frisbee, avec portance et traînée selon l'angle d'attaque (coefficients de Morrison/Hummel), roulis gyroscopique (turn et fade) et vent.
 - `src/main.js` : physique à 120 Hz, inertie du chien, rayon de virage selon la vitesse, dérapages, saut à hauteur variable, bond d'interception, zone de prise, rebonds, ralenti sur les belles prises, caméra.
 - `src/recorder.js` : capture du canvas et du son avec MediaRecorder, avec le score et le lien dessinés dans la vidéo.
-- `src/world.js`, `src/fx.js`, `src/audio.js`, `src/input.js` : décor, particules et traînée, sons, clavier/tactile/manette.
+- `src/world.js` : le parc, avec collines, herbe instanciée, massifs de fleurs, bosquets (feuillus, pins, bouleaux), étang (eau animée, roseaux, nénuphars, canards), allée avec bancs et lampadaires, papillons, oiseaux, pollen, promeneurs avec leur chien.
+- `src/i18n.js` : traductions (EN, FR, ES, PT).
+- `src/fx.js`, `src/audio.js`, `src/input.js` : particules et traînée, sons, clavier/tactile/manette.

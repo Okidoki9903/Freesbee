@@ -8,6 +8,7 @@ import { buildWorld } from './world.js';
 import { initAudio, audioStream, setWind, sfx } from './audio.js';
 import { createInput } from './input.js';
 import { createRecorder, recorderSupported } from './recorder.js';
+import { t as tr, LANGS, getLang, setLang, breedText, locale, decimalComma, applyDom } from './i18n.js';
 
 const $ = (id) => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -17,8 +18,9 @@ const damp = (a, b, rate, dt) => a + (b - a) * (1 - Math.exp(-rate * dt));
 const wrapAngle = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 const angleDamp = (a, b, rate, dt) => a + wrapAngle(b - a) * (1 - Math.exp(-rate * dt));
 const UP = new THREE.Vector3(0, 1, 0);
-const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
-const fmtMult = (m) => String(Math.round(m * 10) / 10).replace('.', ',');
+const fmt = (n) => Math.round(n).toLocaleString(locale());
+const fmtNum = (x, d = 1) => { const s = x.toFixed(d); return decimalComma() ? s.replace('.', ',') : s; };
+const fmtMult = (m) => { const s = String(Math.round(m * 10) / 10); return decimalComma() ? s.replace('.', ',') : s; };
 
 const IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
 if (IS_TOUCH) document.body.classList.add('is-touch');
@@ -32,9 +34,9 @@ const PLAY_URL = /github\.io$/.test(location.hostname)
 const PLAY_URL_SHORT = PLAY_URL.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
 const DIFFS = {
-  facile: { ring: 99, reach: 1.2, wind: 0.5, speed: 0.92, points: 1, note: "Cercle d'atterrissage à chaque lancer, vent léger." },
-  normal: { ring: 3, reach: 1, wind: 1, speed: 1, points: 1, note: "Cercle d'atterrissage sur les 3 premiers lancers." },
-  pro: { ring: 0, reach: 0.88, wind: 1.4, speed: 1.08, points: 1.5, note: 'Aucune aide, vent fort, lancers plus rapides. Points ×1,5.' },
+  facile: { ring: 99, reach: 1.2, wind: 0.5, speed: 0.92, points: 1 },
+  normal: { ring: 3, reach: 1, wind: 1, speed: 1, points: 1 },
+  pro: { ring: 0, reach: 0.88, wind: 1.4, speed: 1.08, points: 1.5 },
 };
 
 /* ======================================================================
@@ -141,10 +143,12 @@ const store = {
 const statsEl = $('breedStats');
 function renderBreed() {
   $('breedCount').textContent = `${breedIndex + 1} / ${BREEDS.length}`;
-  $('breedName').textContent = breed.name;
-  $('breedTag').textContent = breed.tag;
+  const [bName, bTag] = breedText(breed.id);
+  $('breedName').textContent = bName;
+  $('breedTag').textContent = bTag;
   statsEl.textContent = '';
-  for (const [key, label] of Object.entries(STAT_LABELS)) {
+  for (const key of Object.keys(STAT_LABELS)) {
+    const label = tr('stat.' + key);
     const v = breed.stats[key];
     const best = Math.max(...BREEDS.map((b) => b.stats[key]));
     const row = document.createElement('div');
@@ -153,19 +157,19 @@ function renderBreed() {
     const dd = document.createElement('dd');
     const bar = document.createElement('div');
     bar.className = 'bar' + (v === best ? ' top' : '');
-    bar.setAttribute('aria-label', `${label} ${v} sur 10`);
+    bar.setAttribute('aria-label', tr('stat.of', label, v));
     for (let i = 0; i < 10; i++) { const s = document.createElement('i'); if (i < v) s.className = 'on'; bar.append(s); }
     dd.append(bar);
     row.append(dt, dd);
     statsEl.append(row);
   }
-  ui.hudBreed.textContent = breed.name;
+  ui.hudBreed.textContent = bName;
 }
 function setBreed(i) {
   breedIndex = (i + BREEDS.length) % BREEDS.length;
   if (dog) scene.remove(dog.root);
   breed = BREEDS[breedIndex];
-  if (!dogCache.has(breed.id)) dogCache.set(breed.id, new Dog(breed));
+  if (!dogCache.has(breed.id)) dogCache.set(breed.id, new Dog(breed, { shells: IS_TOUCH ? 6 : 12, cell: IS_TOUCH ? 0.015 : 0.012 }));
   dog = dogCache.get(breed.id);
   scene.add(dog.root);
   P = dogParams(breed);
@@ -175,7 +179,7 @@ function setBreed(i) {
 function setDiff(k) {
   diffKey = k;
   for (const b of document.querySelectorAll('#diff button')) b.setAttribute('aria-checked', String(b.dataset.diff === k));
-  $('diffNote').textContent = DIFFS[k].note;
+  $('diffNote').textContent = tr('diffNote.' + k);
   store.set('diff', k);
 }
 $('prevBreed').addEventListener('click', () => { setBreed(breedIndex - 1); sfx.select(); });
@@ -184,6 +188,24 @@ for (const b of document.querySelectorAll('#diff button')) b.addEventListener('c
 setBreed(Math.max(0, BREEDS.findIndex((b) => b.id === store.get('breed', 'collie'))));
 setDiff(DIFFS[store.get('diff', 'normal')] ? store.get('diff', 'normal') : 'normal');
 
+// Language picker (English by default)
+const langSelect = $('langSelect');
+for (const { code, name } of LANGS) {
+  const o = document.createElement('option');
+  o.value = code; o.textContent = name;
+  langSelect.append(o);
+}
+langSelect.value = getLang();
+function refreshTexts() {
+  applyDom();
+  renderBreed();
+  $('diffNote').textContent = tr('diffNote.' + diffKey);
+  if (G && G.mode === 'menu') setStatus(tr('st.waiting'));
+}
+langSelect.addEventListener('change', () => { setLang(langSelect.value); refreshTexts(); });
+applyDom();
+renderBreed();
+
 /* ======================================================================
    Input
    ====================================================================== */
@@ -191,8 +213,8 @@ const controls = createInput({
   isTouch: IS_TOUCH,
   onPad(connected, name) {
     $('padChip').hidden = !connected;
-    if (connected) { $('padChip').querySelector('span').textContent = name; toast(`Manette connectée : ${name}`); }
-    else { toast('Manette déconnectée'); if (G.mode === 'play' && !G.paused) setPaused(true); }
+    if (connected) { $('padChip').querySelector('span').textContent = name; toast(tr('toast.padOn', name)); }
+    else { toast(tr('toast.padOff')); if (G.mode === 'play' && !G.paused) setPaused(true); }
   },
   onPadActive(on) {
     document.body.classList.toggle('pad-active', on);
@@ -225,9 +247,9 @@ const D = () => DIFFS[diffKey];
 
 const THROWS = {
   normal: { label: null },
-  floater: { label: 'Lancer plané !' },
-  laser: { label: 'Lancer tendu !' },
-  hyzer: { label: 'Lancer courbé !' },
+  floater: { label: 'throw.floater' },
+  laser: { label: 'throw.laser' },
+  hyzer: { label: 'throw.hyzer' },
 };
 const THROW_KEYS = [[0, '_from'], [0.35, 'ready'], [0.62, 'windup'], [0.76, 'release'], [1.05, 'follow'], [1.6, 'idle']];
 const RELEASE_T = 0.72;
@@ -297,7 +319,7 @@ function startWindup(delay) {
   G.plan = planThrow();
   G.wind.copy(G.plan.wind);
   owner.setBase('idle');
-  setStatus('Le maître va lancer… regarde où il se tourne !');
+  setStatus(tr('st.windup'));
 }
 
 function releaseDisc() {
@@ -318,9 +340,9 @@ function releaseDisc() {
     landRing.visible = true;
   }
   const label = THROWS[G.plan.type].label;
-  if (label) popup(label);
+  if (label) popup(tr(label));
   sfx.whoosh();
-  setStatus('Attrape-le !');
+  setStatus(tr('st.catch'));
 }
 
 function addScore(n) { G.score += n; ui.score.textContent = fmt(G.score); }
@@ -332,14 +354,14 @@ function catchDisc(cosA) {
   const overShoulder = cosA < 0.35;
   G.combo++; G.catches++;
   G.bestCombo = Math.max(G.bestCombo, G.combo);
-  let label = 'Attrapé !', mult = 1;
-  if (G.leaping && height > 0.2) { label = 'Plongeon !'; mult = 2.5; }
-  else if (height > 0.8) { label = 'Acrobatie !'; mult = 3; }
-  else if (height > 0.2) { label = 'En plein saut !'; mult = 2; }
-  else if (d.pos.y < 0.45) { label = 'Juste à temps !'; mult = 1.5; }
-  if (height > 1.1) { label = 'Acrobatie !'; mult = Math.max(mult, 3); }
+  let label = tr('c.caught'), mult = 1;
+  if (G.leaping && height > 0.2) { label = tr('c.dive'); mult = 2.5; }
+  else if (height > 0.8) { label = tr('c.acro'); mult = 3; }
+  else if (height > 0.2) { label = tr('c.jump'); mult = 2; }
+  else if (d.pos.y < 0.45) { label = tr('c.close'); mult = 1.5; }
+  if (height > 1.1) { label = tr('c.acro'); mult = Math.max(mult, 3); }
   const extras = [];
-  if (overShoulder) { mult *= 1.5; extras.push("par-dessus l'épaule"); }
+  if (overShoulder) { mult *= 1.5; extras.push(tr('c.shoulder')); }
   const comboMult = 1 + 0.5 * (G.combo - 1);
   const pts = Math.round((100 + dist * 4) * mult * comboMult * D().points / 10) * 10;
   addScore(pts);
@@ -349,7 +371,7 @@ function catchDisc(cosA) {
   sfx.snap();
   sfx.bark(Math.sqrt(1 / dog.scale));
   fx.confetti(d.pos, mult >= 2 ? 60 : 30);
-  if (G.combo > 1) { ui.combo.hidden = false; ui.combo.textContent = `Combo ×${fmtMult(comboMult)}`; }
+  if (G.combo > 1) { ui.combo.hidden = false; ui.combo.textContent = `${tr('combo')} ×${fmtMult(comboMult)}`; }
   G.phase = 'carrying';
   G.catchFrom.copy(d.pos);
   G.carryT = 0;
@@ -357,7 +379,7 @@ function catchDisc(cosA) {
   landRing.visible = false;
   owner.play([[0, '_from'], [0.25, 'cheer'], [0.8, 'cheer'], [1.2, 'wave']]);
   owner.setBase('wave');
-  setStatus('Bravo ! Rapporte le frisbee au maître');
+  setStatus(tr('st.bring'));
 }
 
 function bounceOff(center, label) {
@@ -374,7 +396,7 @@ function bounceOff(center, label) {
   G.hitCooldown = 0.3;
   G.combo = 0;
   ui.combo.hidden = true;
-  popup(label, 'Rattrape-le !');
+  popup(label, tr('c.again'));
   sfx.bonk();
   controls.rumble(0.3, 0.6, 120);
 }
@@ -393,17 +415,17 @@ function discLanded() {
   controls.rumble(0.2, 0.6, 180);
   owner.setBase('idle');
   if (G.lives <= 0) {
-    popup('Raté !');
-    setStatus('Plus de frisbee…');
+    popup(tr('c.miss'));
+    setStatus(tr('st.none'));
     setTimeout(gameOver, 1500);
   } else {
-    popup('Raté !', G.lives === 1 ? 'Dernière chance' : `Encore ${G.lives} essais`);
-    setStatus('Va chercher le frisbee et rapporte-le');
+    popup(tr('c.miss'), G.lives === 1 ? tr('c.last') : tr('c.left', G.lives));
+    setStatus(tr('st.fetch'));
   }
 }
 
 function shareText() {
-  return `J'ai fait ${fmt(G.score)} points avec mon ${breed.name} sur Freesbee 🐕🥏 Qui fait mieux ?`;
+  return tr('share.score', fmt(G.score), breedText(breed.id)[0]);
 }
 function xIntent(text) {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(PLAY_URL)}`;
@@ -417,8 +439,8 @@ function gameOver() {
   $('finalScore').textContent = fmt(G.score);
   const combo = Math.max(1, 1 + 0.5 * (G.bestCombo - 1));
   $('finalDetail').textContent =
-    `${breed.name} · ${G.catches} frisbee${G.catches > 1 ? 's' : ''} attrapé${G.catches > 1 ? 's' : ''} · meilleur combo ×${fmtMult(combo)} · ` +
-    (isRecord ? 'nouveau record !' : `record : ${fmt(best)}`);
+    `${breedText(breed.id)[0]} · ${tr('over.catches', G.catches)} · ${tr('over.bestCombo')} ×${fmtMult(combo)} · ` +
+    (isRecord ? tr('over.newRecord') : `${tr('over.record')} : ${fmt(best)}`);
   $('shareX').href = xIntent(shareText());
   $('overScreen').hidden = false;
   $('againBtn').focus();
@@ -457,7 +479,7 @@ $('pauseBtn').addEventListener('click', (e) => { e.currentTarget.blur(); setPaus
 $('menuBtn').addEventListener('click', toMenu);
 $('menuBtn2').addEventListener('click', toMenu);
 $('copyLink').addEventListener('click', () => {
-  const done = () => toast('Lien copié : ' + PLAY_URL_SHORT);
+  const done = () => toast(tr('toast.copied', PLAY_URL_SHORT));
   try {
     navigator.clipboard.writeText(PLAY_URL).then(done, () => toast(PLAY_URL, 5000));
   } catch (e) { toast(PLAY_URL, 5000); }
@@ -492,13 +514,13 @@ function drawOverlay(ctx, w, h) {
     ctx.fillStyle = paper; ctx.fill(); ctx.lineWidth = 4 * u; ctx.strokeStyle = ink; ctx.stroke();
     ctx.fillStyle = ink;
     ctx.font = `800 ${Math.round(14 * u)}px Nunito, sans-serif`;
-    ctx.fillText(breed.name.toUpperCase(), 34 * u, 42 * u);
+    ctx.fillText(breedText(breed.id)[0].toUpperCase(), 34 * u, 42 * u);
     ctx.font = `${Math.round(40 * u)}px ${disp}`;
     ctx.fillText(scoreText, 34 * u, 84 * u);
     if (G.combo > 1) {
       ctx.textAlign = 'center';
       ctx.font = `${Math.round(34 * u)}px ${disp}`;
-      outlinedText(ctx, `Combo ×${fmtMult(1 + 0.5 * (G.combo - 1))}`, w / 2, 52 * u, orange, ink, 6 * u);
+      outlinedText(ctx, `${tr('combo')} ×${fmtMult(1 + 0.5 * (G.combo - 1))}`, w / 2, 52 * u, orange, ink, 6 * u);
       ctx.textAlign = 'left';
     }
   }
@@ -526,7 +548,7 @@ function drawOverlay(ctx, w, h) {
   const brand = 'Freesbee';
   const bwid = ctx.measureText(brand).width;
   ctx.font = `800 ${Math.round(17 * u)}px Nunito, sans-serif`;
-  const link = 'Joue gratuitement : ' + PLAY_URL_SHORT;
+  const link = tr('overlay.play') + ' ' + PLAY_URL_SHORT;
   const lw = ctx.measureText(link).width;
   const boxW = Math.max(bwid, lw) + 28 * u, boxH = 70 * u;
   const bx = w - boxW - 18 * u, by = h - boxH - 18 * u;
@@ -564,28 +586,28 @@ const recorder = createRecorder({
     const dl = $('clipDownload');
     dl.href = clipUrl;
     dl.download = name;
-    const mb = (blob.size / 1e6).toFixed(1).replace('.', ',');
-    let note = `${Math.round(info.seconds)} s · ${mb} Mo · ${info.ext.toUpperCase()}`;
-    if (info.ext !== 'mp4') note += '. X veut du MP4 : ce navigateur ne sait faire que du WebM. Filme depuis Chrome ou Safari à jour pour avoir du MP4.';
+    const mb = fmtNum(blob.size / 1e6);
+    let note = `${Math.round(info.seconds)} s · ${mb} MB · ${info.ext.toUpperCase()}`;
+    if (info.ext !== 'mp4') note += '.' + tr('video.webm');
     $('clipInfo').textContent = note;
     const file = new File([blob], name, { type: info.type });
     const share = $('clipShare');
     share.hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
     share.onclick = () => navigator.share({ files: [file], text: shareText() + ' ' + PLAY_URL }).catch(() => {});
-    $('clipX').href = xIntent(G.mode === 'menu' ? 'Mon chien sur Freesbee 🐕🥏 Viens jouer :' : shareText());
+    $('clipX').href = xIntent(G.mode === 'menu' ? tr('share.menu') : shareText());
     $('videoScreen').hidden = false;
     dl.focus();
   },
 });
 function toggleRec() {
-  if (!recorderSupported()) { toast("Ce navigateur ne sait pas filmer le jeu. Essaie Chrome, Edge ou Safari à jour."); return; }
+  if (!recorderSupported()) { toast(tr('toast.noRec')); return; }
   initAudio(() => G.paused || G.mode !== 'play');
   if (recorder.recording) { recorder.stop(); return; }
   if (recorder.start()) {
     $('recBtn').classList.add('on');
     $('recLive').hidden = false;
     sfx.rec(true);
-    toast('Enregistrement lancé. Appuie encore pour arrêter (60 s max).');
+    toast(tr('toast.recOn'));
   }
 }
 $('recBtn').addEventListener('click', (e) => { e.currentTarget.blur(); toggleRec(); });
@@ -770,7 +792,7 @@ function stepDisc(h) {
         if (cosA > -0.45) {                       // the neck can turn about 115° either way
           d.pos.copy(tmpB);
           const rel = tmpC.subVectors(d.vel, dogVel).length();
-          if (rel > P.grip) bounceOff(headNow, 'Trop rapide !');
+          if (rel > P.grip) bounceOff(headNow, tr('c.tooFast'));
           else { catchDisc(cosA); return; }
         }
       }
@@ -781,7 +803,7 @@ function stepDisc(h) {
         tmpD.set(G.pos.x - tmpA.x * half, by, G.pos.z - tmpA.z * half);
         const a = tmpC.clone(), b = tmpD.clone();
         closestOnSegment(a, b, d.pos, tmpB);
-        if (tmpB.distanceTo(d.pos) < dog.r * sc * 1.1 + 0.05) bounceOff(tmpB.clone(), 'Rebond !');
+        if (tmpB.distanceTo(d.pos) < dog.r * sc * 1.1 + 0.05) bounceOff(tmpB.clone(), tr('c.bounce'));
       }
     }
     if (d.pos.y <= 0.04) { groundHit(); discLanded(); }
@@ -809,7 +831,7 @@ function stepDisc(h) {
       dog.snap = 0.6;
       sfx.snap();
       owner.setBase('wave');
-      setStatus('Rapporte le frisbee au maître');
+      setStatus(tr('st.bring2'));
     }
     return;
   }
@@ -817,7 +839,7 @@ function stepDisc(h) {
     if (Math.hypot(G.pos.x, G.pos.z) < 1.7) {
       G.phase = 'handoff';
       G.timer = 0;
-      if (G.combo > 0) { addScore(50); popup('Bon chien !', '+50'); }
+      if (G.combo > 0) { addScore(50); popup(tr('c.goodDog'), '+50'); }
       sfx.deliver();
       controls.rumble(0.2, 0.2, 80);
       owner.play([[0, '_from'], [0.3, 'receive'], [0.65, 'receive'], [1.0, 'idle']]);
@@ -979,7 +1001,7 @@ function updateCamera(dt) {
       ui.windArrow.style.transform = `rotate(${Math.atan2(G.wind.x * -fz + G.wind.z * fx_, G.wind.x * fx_ + G.wind.z * fz)}rad)`;
       ui.windArrow.style.opacity = '1';
     } else ui.windArrow.style.opacity = '0.25';
-    const wt = ws < 0.3 ? 'Pas de vent' : `${ws.toFixed(1).replace('.', ',')} m/s`;
+    const wt = ws < 0.3 ? tr('hud.noWind') : `${fmtNum(ws)} m/s`;
     if (ui.windText.textContent !== wt) ui.windText.textContent = wt;
     setWind(ws);
   }
@@ -1056,7 +1078,7 @@ function frame() {
   const st = G.stamina.toFixed(3);
   if (ui.staminaFill.dataset.v !== st) { ui.staminaFill.dataset.v = st; ui.staminaFill.style.transform = `scaleX(${st})`; }
   ui.stamina.classList.toggle('tired', G.tired);
-  if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4) setStatus('Va chercher le frisbee et rapporte-le');
+  if (G.phase === 'ground' && G.lives > 0 && G.timer > 0.4) setStatus(tr('st.fetch'));
 
   renderer.render(scene, camera);
   recorder.frame();

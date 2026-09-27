@@ -1,18 +1,18 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Freesbee</title>
-<meta name="description" content="Choisis ton chien et attrape le frisbee que ton maître lance. Jeu 3D gratuit dans le navigateur, au clavier, au tactile ou à la manette.">
+<meta name="description" content="Pick your dog and catch the frisbee your owner throws. Free 3D browser game: keyboard, touch or controller.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Freesbee">
-<meta property="og:description" content="Choisis ton chien et attrape le frisbee. Jeu 3D gratuit, joue direct dans le navigateur.">
+<meta property="og:description" content="Pick your dog and catch the frisbee. Free 3D game, play right in your browser.">
 <meta property="og:url" content="https://okidoki9903.github.io/Freesbee/">
 <meta property="og:image" content="https://okidoki9903.github.io/Freesbee/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Freesbee">
-<meta name="twitter:description" content="Choisis ton chien et attrape le frisbee. Jeu 3D gratuit, joue direct dans le navigateur.">
+<meta name="twitter:description" content="Pick your dog and catch the frisbee. Free 3D game, play right in your browser.">
 <meta name="twitter:image" content="https://okidoki9903.github.io/Freesbee/og.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -215,6 +215,14 @@
     background: var(--paper); border: 4px solid var(--ink); border-radius: 22px; box-shadow: 0 8px 0 var(--ink);
     width: min(520px, 100%); box-sizing: border-box; padding: 14px 16px 16px; display: grid; gap: 12px; margin-bottom: 8px;
   }
+  .panel-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: -6px; }
+  .lang { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; }
+  .lang svg { width: 16px; height: 16px; }
+  .lang select {
+    font: inherit; color: var(--ink); background: #fff; border: 2px solid var(--ink); border-radius: 8px;
+    padding: 3px 6px; cursor: pointer;
+  }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .breed-nav { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; }
   .nav-btn {
     width: 44px; height: 44px; border-radius: 50%; border: 3px solid var(--ink); background: var(--disc);
@@ -294,88 +302,94 @@
 <div class="hud">
   <div class="hud-col">
     <div class="chip"><small id="hudBreed">Score</small><div class="score" id="score">0</div></div>
-    <div class="chip wind" id="wind" title="Vent">
+    <div class="chip wind" id="wind" data-i18n-title="hud.wind">
       <svg viewBox="0 0 24 24" id="windArrow" aria-hidden="true"><path d="M12 2 L18 12 H14 V22 H10 V12 H6 Z" fill="#3fa0d8" stroke="#1f3a22" stroke-width="1.5" stroke-linejoin="round"/></svg>
-      <span id="windText">Pas de vent</span>
+      <span id="windText" data-i18n="hud.noWind">No wind</span>
     </div>
   </div>
   <div class="hud-col right">
     <div class="row">
-      <div class="chip lives" aria-label="Vies restantes">
+      <div class="chip lives" data-i18n-aria="hud.lives">
         <div class="life"></div><div class="life"></div><div class="life"></div>
       </div>
-      <button class="chip icon-btn rec-btn" id="recBtn" type="button" aria-label="Filmer la partie" title="Filmer (R / Select)"><span class="dot"></span></button>
-      <button class="chip icon-btn" id="pauseBtn" type="button" aria-label="Pause">
+      <button class="chip icon-btn rec-btn" id="recBtn" type="button" data-i18n-aria="hud.rec" data-i18n-title="hud.rec"><span class="dot"></span></button>
+      <button class="chip icon-btn" id="pauseBtn" type="button" data-i18n-aria="hud.pause">
         <svg viewBox="0 0 18 18" aria-hidden="true"><rect x="3" y="2" width="4" height="14" rx="1" fill="#1f3a22"/><rect x="11" y="2" width="4" height="14" rx="1" fill="#1f3a22"/></svg>
       </button>
     </div>
     <div class="chip pad" id="padChip" hidden>
       <svg viewBox="0 0 40 28" aria-hidden="true"><path d="M8 4 H32 C37 4 40 10 40 18 C40 26 34 27 30 21 L27 17 H13 L10 21 C6 27 0 26 0 18 C0 10 3 4 8 4 Z" fill="#1f3a22"/><circle cx="30" cy="11" r="2.4" fill="#ff5a1f"/><rect x="7" y="10" width="8" height="2.4" fill="#fbf7ea"/><rect x="9.8" y="7.2" width="2.4" height="8" fill="#fbf7ea"/></svg>
-      <span>Manette</span>
+      <span>Controller</span>
     </div>
   </div>
 </div>
 <div class="rec-live" id="recLive" hidden>● REC <span id="recTime">0:00</span></div>
 <div class="combo" id="combo" hidden></div>
-<div class="status" id="status">Le maître t'attend…</div>
+<div class="status" id="status" data-i18n="st.waiting">Your owner is waiting…</div>
 <div class="popup" id="popup"></div>
 <div class="toast" id="toast"></div>
 <div class="stamina" id="stamina"><i id="staminaFill"></i></div>
 
 <div class="touch">
   <div class="stick-base" id="stickBase"><div class="stick-knob" id="stickKnob"></div></div>
-  <div class="btn-round" id="btnSprint">Sprint</div>
-  <div class="btn-round" id="btnJump">Saut</div>
+  <div class="btn-round" id="btnSprint" data-i18n="touch.sprintBtn">Sprint</div>
+  <div class="btn-round" id="btnJump" data-i18n="touch.jumpBtn">Jump</div>
 </div>
 
 <!-- Start: pick a dog -->
 <div class="screen select" id="startScreen">
   <header class="brand">
     <h1>Freesbee</h1>
-    <p>Choisis ton chien. Ton maître lance, toi tu attrapes.</p>
+    <p data-i18n="brand.tag">Pick your dog. Your owner throws, you catch.</p>
   </header>
-  <section class="panel" aria-label="Choix du chien">
+  <section class="panel" data-i18n-aria="menu.pick">
+    <div class="panel-top">
+      <div class="breed-count" id="breedCount">1 / 8</div>
+      <label class="lang"><span class="sr" data-i18n="menu.lang">Language</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 10h16M10 2c2.5 2.6 2.5 13.4 0 16M10 2c-2.5 2.6-2.5 13.4 0 16" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        <select id="langSelect"></select>
+      </label>
+    </div>
     <div class="breed-nav">
-      <button class="nav-btn" id="prevBreed" type="button" aria-label="Chien précédent">‹</button>
+      <button class="nav-btn" id="prevBreed" type="button" data-i18n-aria="menu.prev">‹</button>
       <div class="breed-info">
-        <div class="breed-count" id="breedCount">1 / 8</div>
         <h2 id="breedName">Border Collie</h2>
         <p id="breedTag"></p>
       </div>
-      <button class="nav-btn" id="nextBreed" type="button" aria-label="Chien suivant">›</button>
+      <button class="nav-btn" id="nextBreed" type="button" data-i18n-aria="menu.next">›</button>
     </div>
     <dl class="stats" id="breedStats"></dl>
-    <div class="diff" role="radiogroup" aria-label="Difficulté" id="diff">
-      <button type="button" role="radio" data-diff="facile" aria-checked="false">Facile</button>
-      <button type="button" role="radio" data-diff="normal" aria-checked="true">Normal</button>
-      <button type="button" role="radio" data-diff="pro" aria-checked="false">Pro</button>
+    <div class="diff" role="radiogroup" data-i18n-aria="diff.label" id="diff">
+      <button type="button" role="radio" data-diff="facile" aria-checked="false" data-i18n="diff.facile">Easy</button>
+      <button type="button" role="radio" data-diff="normal" aria-checked="true" data-i18n="diff.normal">Normal</button>
+      <button type="button" role="radio" data-diff="pro" aria-checked="false" data-i18n="diff.pro">Pro</button>
     </div>
     <p class="diff-note" id="diffNote"></p>
-    <button class="play" id="playBtn" type="button">Jouer<small id="playHint" hidden>A ou Start · ◀ ▶ pour changer de chien</small></button>
+    <button class="play" id="playBtn" type="button"><span data-i18n="menu.play">Play</span><small id="playHint" hidden data-i18n="menu.playHint"></small></button>
     <details class="help">
-      <summary>Commandes ▾</summary>
+      <summary data-i18n="menu.controls">Controls ▾</summary>
       <dl class="controls">
         <div class="ctrl-set ctrl-keys">
-          <dt>Courir</dt><dd><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / flèches</dd>
-          <dt>Sauter</dt><dd><kbd>Espace</kbd>, maintenu = plus haut. Près du frisbee, le chien bondit vers lui.</dd>
-          <dt>Sprinter</dt><dd><kbd>Maj</kbd></dd>
-          <dt>Filmer</dt><dd><kbd>R</kbd></dd>
-          <dt>Pause</dt><dd><kbd>Échap</kbd> ou <kbd>P</kbd></dd>
-          <dt>Menu</dt><dd><kbd>◀</kbd><kbd>▶</kbd> chien, <kbd>▲</kbd><kbd>▼</kbd> difficulté, <kbd>Entrée</kbd> jouer</dd>
+          <dt data-i18n="ctrl.run"></dt><dd data-i18n-html="keys.run"></dd>
+          <dt data-i18n="ctrl.jump"></dt><dd data-i18n-html="keys.jump"></dd>
+          <dt data-i18n="ctrl.sprint"></dt><dd data-i18n-html="keys.sprint"></dd>
+          <dt data-i18n="ctrl.film"></dt><dd data-i18n-html="keys.film"></dd>
+          <dt data-i18n="ctrl.pause"></dt><dd data-i18n-html="keys.pause"></dd>
+          <dt data-i18n="ctrl.menu"></dt><dd data-i18n-html="keys.menu"></dd>
         </div>
         <div class="ctrl-set ctrl-touch">
-          <dt>Courir</dt><dd>pouce gauche n'importe où</dd>
-          <dt>Sauter</dt><dd>bouton « Saut », maintenu = plus haut</dd>
-          <dt>Sprinter</dt><dd>bouton « Sprint »</dd>
-          <dt>Filmer</dt><dd>bouton rouge en haut</dd>
+          <dt data-i18n="ctrl.run"></dt><dd data-i18n="touch.run"></dd>
+          <dt data-i18n="ctrl.jump"></dt><dd data-i18n="touch.jump"></dd>
+          <dt data-i18n="ctrl.sprint"></dt><dd data-i18n="touch.sprint"></dd>
+          <dt data-i18n="ctrl.film"></dt><dd data-i18n="touch.film"></dd>
         </div>
         <div class="ctrl-set ctrl-pad">
-          <dt>Courir</dt><dd>stick gauche ou croix</dd>
-          <dt>Sauter</dt><dd><kbd class="round">A</kbd> / <kbd class="round">B</kbd>, maintenu = plus haut</dd>
-          <dt>Sprinter</dt><dd><kbd>R</kbd> <kbd>ZR</kbd> <kbd>L</kbd> <kbd>ZL</kbd> <kbd class="round">X</kbd> <kbd class="round">Y</kbd></dd>
-          <dt>Caméra</dt><dd>stick droit</dd>
-          <dt>Filmer</dt><dd><kbd>Select</kbd></dd>
-          <dt>Pause</dt><dd><kbd>Start</kbd></dd>
+          <dt data-i18n="ctrl.run"></dt><dd data-i18n="pad.run"></dd>
+          <dt data-i18n="ctrl.jump"></dt><dd data-i18n-html="pad.jump"></dd>
+          <dt data-i18n="ctrl.sprint"></dt><dd data-i18n-html="pad.sprint"></dd>
+          <dt data-i18n="ctrl.camera"></dt><dd data-i18n="pad.camera"></dd>
+          <dt data-i18n="ctrl.film"></dt><dd data-i18n-html="pad.film"></dd>
+          <dt data-i18n="ctrl.pause"></dt><dd data-i18n-html="pad.pause"></dd>
         </div>
       </dl>
     </details>
@@ -384,49 +398,49 @@
 
 <div class="screen" id="pauseScreen" hidden>
   <div class="card">
-    <h2>Pause</h2>
+    <h2 data-i18n="pause.title">Paused</h2>
     <div class="btns">
-      <button class="play" id="resumeBtn" type="button">Reprendre</button>
-      <button class="btn alt" id="menuBtn" type="button">Changer de chien</button>
+      <button class="play" id="resumeBtn" type="button" data-i18n="pause.resume">Resume</button>
+      <button class="btn alt" id="menuBtn" type="button" data-i18n="pause.menu">Change dog</button>
     </div>
   </div>
 </div>
 
 <div class="screen" id="overScreen" hidden>
   <div class="card">
-    <h2>Fin de la partie</h2>
+    <h2 data-i18n="over.title">Game over</h2>
     <div class="final" id="finalScore">0</div>
     <p id="finalDetail"></p>
     <div class="btns">
-      <button class="play" id="againBtn" type="button">Rejouer</button>
+      <button class="play" id="againBtn" type="button" data-i18n="over.again">Play again</button>
       <div class="btns two">
         <a class="btn dark" id="shareX" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-7.2 8.2L23 22h-6.6l-5.1-6.7L5.4 22H2.3l7.7-8.8L1 2h6.8l4.6 6.1L18.9 2Zm-1.2 18h1.8L6.4 3.9H4.5L17.7 20Z"/></svg>
-          Publier
+          <span data-i18n="over.post">Post</span>
         </a>
-        <button class="btn alt" id="copyLink" type="button">Copier le lien</button>
+        <button class="btn alt" id="copyLink" type="button" data-i18n="over.copy">Copy link</button>
       </div>
-      <button class="btn alt" id="menuBtn2" type="button">Changer de chien</button>
+      <button class="btn alt" id="menuBtn2" type="button" data-i18n="over.menu">Change dog</button>
     </div>
   </div>
 </div>
 
 <div class="screen" id="videoScreen" hidden>
   <div class="card">
-    <h2>Ta vidéo est prête</h2>
+    <h2 data-i18n="video.title">Your clip is ready</h2>
     <video class="clip" id="clip" controls playsinline loop muted></video>
     <p class="note" id="clipInfo"></p>
     <div class="btns">
-      <a class="play" id="clipDownload" href="#" download="freesbee.mp4">Télécharger la vidéo</a>
+      <a class="play" id="clipDownload" href="#" download="freesbee.mp4" data-i18n="video.download">Download video</a>
       <div class="btns two">
-        <button class="btn alt" id="clipShare" type="button" hidden>Partager…</button>
+        <button class="btn alt" id="clipShare" type="button" hidden data-i18n="video.share">Share…</button>
         <a class="btn dark" id="clipX" href="https://twitter.com/intent/tweet" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-7.2 8.2L23 22h-6.6l-5.1-6.7L5.4 22H2.3l7.7-8.8L1 2h6.8l4.6 6.1L18.9 2Zm-1.2 18h1.8L6.4 3.9H4.5L17.7 20Z"/></svg>
-          Poster sur X
+          <span data-i18n="video.x">Post on X</span>
         </a>
       </div>
-      <p class="note">X ne permet pas d'ajouter la vidéo à ta place : télécharge-la, puis joins-la au post. Le lien du jeu est déjà dans le texte.</p>
-      <button class="btn alt" id="clipClose" type="button">Fermer</button>
+      <p class="note" data-i18n="video.note"></p>
+      <button class="btn alt" id="clipClose" type="button" data-i18n="video.close">Close</button>
     </div>
   </div>
 </div>
